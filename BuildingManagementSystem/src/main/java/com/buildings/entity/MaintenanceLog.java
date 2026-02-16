@@ -4,21 +4,21 @@ import java.util.UUID;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "maintenance_logs")
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
 @Setter
 public class MaintenanceLog extends BaseEntity {
 
-    private UUID reuqestId;
+    private UUID requestId;
 
     private UUID actorId;
 

@@ -15,6 +15,8 @@ public enum ErrorCode {
     UNAUTHENTICATED(1006, "Unauthenticated", HttpStatus.UNAUTHORIZED),
     UNAUTHORIZED(1007, "You do not have permission", HttpStatus.FORBIDDEN),
     INVALID_TOKEN(1008, "Token is invalid", HttpStatus.UNAUTHORIZED),
+    RESOURCE_NOT_FOUND(1009, "Resource not found", HttpStatus.NOT_FOUND),
+    INVALID_UUID(1010, "Invalid UUID format", HttpStatus.BAD_REQUEST),
     ;
 
     ErrorCode(int code, String message, HttpStatus statusCode) {

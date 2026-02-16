@@ -10,9 +10,11 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PageResponse<T> {
+    private int currentPage;
+    private int pageSize;
+    private int totalPages;
+    private long totalElements;
 
     @Builder.Default
     private List<T> data = Collections.emptyList();
-
-    private long total;
 }

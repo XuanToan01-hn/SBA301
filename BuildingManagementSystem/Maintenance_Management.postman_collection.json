@@ -1,0 +1,530 @@
+{
+	"info": {
+		"_postman_id": "7a3b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+		"name": "Maintenance Management System",
+		"description": "Collection for testing the Maintenance Module of the Building Management System.\n\nIncludes happy paths, validation errors, and various scenarios for requests, quotations, and resources.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Maintenance Requests",
+			"item": [
+				{
+					"name": "Create Maintenance Request",
+					"item": [
+						{
+							"name": "Create Request - Happy Path",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"title\": \"Broken AC in Living Room\",\n  \"description\": \"The air conditioner is making a loud noise and not cooling.\",\n  \"scope\": \"APARTMENT\",\n  \"category\": \"ELECTRICAL\",\n  \"priority\": \"HIGH\",\n  \"preferredTime\": \"2023-11-20T10:00:00\",\n  \"isBillable\": true,\n  \"apartmentId\": \"{{apartmentId}}\",\n  \"buildingId\": \"{{buildingId}}\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/maintenance-requests",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"maintenance-requests"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Request - Minimal",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"title\": \"Leaky Faucet\",\n  \"description\": \"Kitchen faucet is dripping constantly.\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/maintenance-requests",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"maintenance-requests"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Request - Validation Error (Empty)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"title\": \"\",\n  \"description\": \"\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/maintenance-requests",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"maintenance-requests"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Get Requests",
+					"item": [
+						{
+							"name": "Get All Requests (Default)",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/maintenance-requests",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"maintenance-requests"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Requests - With Search",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/maintenance-requests?keyword=AC",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"maintenance-requests"
+									],
+									"query": [
+										{
+											"key": "keyword",
+											"value": "AC"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Requests - Pagination",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/maintenance-requests?page=1&size=5",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"maintenance-requests"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "size",
+											"value": "5"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Get Request Details",
+					"item": [
+						{
+							"name": "Get Request Detail - Happy Path",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/maintenance-requests/{{requestId}}",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"maintenance-requests",
+										"{{requestId}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Request Detail - Not Found",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/maintenance-requests/00000000-0000-0000-0000-000000000000",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"maintenance-requests",
+										"00000000-0000-0000-0000-000000000000"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Update Request",
+					"item": [
+						{
+							"name": "Update Request - Assign Staff & Status",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"status\": \"IN_PROGRESS\",\n  \"staffId\": \"{{staffId}}\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/maintenance-requests/{{requestId}}",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"maintenance-requests",
+										"{{requestId}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Request - Payment Status",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"paymentStatus\": \"PAID\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/maintenance-requests/{{requestId}}",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"maintenance-requests",
+										"{{requestId}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Quotations",
+			"item": [
+				{
+					"name": "Create Quotation",
+					"item": [
+						{
+							"name": "Create Quotation - Happy Path",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"title\": \"Repair Cost Estimate\",\n  \"description\": \"Replacement of fan motor\",\n  \"items\": [\n    {\n      \"name\": \"Fan Motor\",\n      \"quantity\": 1,\n      \"unitPrice\": 150.00,\n      \"itemType\": \"MATERIAL\"\n    },\n    {\n      \"name\": \"Labor\",\n      \"quantity\": 2,\n      \"unitPrice\": 50.00,\n      \"itemType\": \"LABOR\"\n    }\n  ]\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/maintenance-requests/{{requestId}}/quotations",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"maintenance-requests",
+										"{{requestId}}",
+										"quotations"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Quotation - Validation Error (Missing Items)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"title\": \"Invalid Quotation\",\n  \"items\": [\n    {\n      \"name\": \"\",\n      \"quantity\": null,\n      \"unitPrice\": null\n    }\n  ]\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/maintenance-requests/{{requestId}}/quotations",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"maintenance-requests",
+										"{{requestId}}",
+										"quotations"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Approve/Reject Quotation",
+					"item": [
+						{
+							"name": "Approve Quotation",
+							"request": {
+								"method": "PATCH",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/maintenance-requests/quotations/{{quotationId}}/status?status=APPROVED",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"maintenance-requests",
+										"quotations",
+										"{{quotationId}}",
+										"status"
+									],
+									"query": [
+										{
+											"key": "status",
+											"value": "APPROVED"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Reject Quotation",
+							"request": {
+								"method": "PATCH",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/maintenance-requests/quotations/{{quotationId}}/status?status=REJECTED",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"maintenance-requests",
+										"quotations",
+										"{{quotationId}}",
+										"status"
+									],
+									"query": [
+										{
+											"key": "status",
+											"value": "REJECTED"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Resources",
+			"item": [
+				{
+					"name": "Add Resource - Image",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"AC Damage\",\n  \"url\": \"https://example.com/images/ac-damage.jpg\",\n  \"resourceType\": \"IMAGE\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/maintenance-requests/{{requestId}}/resources",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"maintenance-requests",
+								"{{requestId}}",
+								"resources"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Resource - Video",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Repair Walkthrough\",\n  \"url\": \"https://example.com/videos/repair.mp4\",\n  \"resourceType\": \"VIDEO\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/maintenance-requests/{{requestId}}/resources",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"maintenance-requests",
+								"{{requestId}}",
+								"resources"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Logs",
+			"item": [
+				{
+					"name": "Get Request Logs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/maintenance-requests/{{requestId}}/logs",
+							"host": [
+								"{{baseUrl}}"
+									],
+								"path": [
+									"maintenance-requests",
+									"{{requestId}}",
+									"logs"
+								]
+							}
+						},
+						"response": []
+					}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080/building-management",
+			"type": "string"
+		},
+		{
+			"key": "requestId",
+			"value": "UUID_HERE",
+			"type": "string"
+		},
+		{
+			"key": "quotationId",
+			"value": "UUID_HERE",
+			"type": "string"
+		},
+		{
+			"key": "apartmentId",
+			"value": "UUID_HERE",
+			"type": "string"
+		},
+		{
+			"key": "buildingId",
+			"value": "UUID_HERE",
+			"type": "string"
+		},
+		{
+			"key": "staffId",
+			"value": "UUID_HERE",
+			"type": "string"
+		}
+	]
+}

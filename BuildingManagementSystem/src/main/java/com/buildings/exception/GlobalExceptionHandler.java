@@ -18,7 +18,7 @@ public class GlobalExceptionHandler {
         log.error("Uncategorized error: ", exception); // Log lỗi để debug
         ApiResponse<?> apiResponse = ApiResponse.builder()
                 .code(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode())
-                .message(ErrorCode.UNCATEGORIZED_EXCEPTION.getMessage())
+                .message(ErrorCode.UNCATEGORIZED_EXCEPTION.getMessage() + ": " + exception.getMessage())
                 .build();
         
         return ResponseEntity.status(ErrorCode.UNCATEGORIZED_EXCEPTION.getStatusCode())
@@ -69,6 +69,38 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.builder()
                         .code(errorCode.getCode())
                         .message(errorCode.getMessage())
+                        .build());
+    }
+
+    // 5. Xử lý lỗi MethodArgumentTypeMismatchException (UUID không hợp lệ)
+    @ExceptionHandler(value = org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
+    ResponseEntity<ApiResponse<?>> handlingMethodArgumentTypeMismatchException(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException exception) {
+        ErrorCode errorCode = ErrorCode.INVALID_UUID;
+
+        return ResponseEntity.status(errorCode.getStatusCode())
+                .body(ApiResponse.builder()
+                        .code(errorCode.getCode())
+                        .message(errorCode.getMessage() + ": " + exception.getValue())
+                        .build());
+    }
+
+    // 6. Xử lý lỗi HttpMessageNotReadableException (JSON không đúng định dạng, lỗi parse UUID trong body)
+    @ExceptionHandler(value = org.springframework.http.converter.HttpMessageNotReadableException.class)
+    ResponseEntity<ApiResponse<?>> handlingHttpMessageNotReadableException(org.springframework.http.converter.HttpMessageNotReadableException exception) {
+        // Kiểm tra xem có phải lỗi parse UUID không
+        if (exception.getMessage() != null && exception.getMessage().contains("UUID")) {
+             ErrorCode errorCode = ErrorCode.INVALID_UUID;
+             return ResponseEntity.status(errorCode.getStatusCode())
+                .body(ApiResponse.builder()
+                        .code(errorCode.getCode())
+                        .message(errorCode.getMessage())
+                        .build());
+        }
+
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.builder()
+                        .code(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode())
+                        .message("Malformed JSON request or invalid data format")
                         .build());
     }
 }
