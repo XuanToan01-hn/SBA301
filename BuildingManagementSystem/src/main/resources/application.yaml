@@ -6,8 +6,8 @@ server:
 spring:
   datasource:
     url: jdbc:mysql://localhost:3306/building_management
-    username: sa
-    password: 123
+    username: root
+    password: 123456
   jpa:
     hibernate:
       ddl-auto: update
@@ -28,3 +28,9 @@ jwt:
     signerKey: "1TjXchw5FloESb63Kc+DFhTARvpWL4jUGCwfGWxuG5SIf/1y/LgJxHnMqaF6A/ijajsdasjdasjdasjdkkas"
     valid-duration: 20
     refreshable-duration: 36000
+
+# Core PayOS credentials
+payos:
+  client-id: e42817bc-7d8c-4f72-a776-a51e24ba5058
+  api-key: c6fd1c49-89b8-42d7-a9fe-8f837d8416d9
+  checksum-key: 71b78e3aa8aff6952a5f1cd693054a20eca17ef8b1c99efb120a55027bb6bdfa
