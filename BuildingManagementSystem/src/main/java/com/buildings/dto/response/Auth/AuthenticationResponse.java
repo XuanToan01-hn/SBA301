@@ -9,7 +9,6 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class AuthenticationResponse {
-    String token; // Access Token (15 phút)
-    String refreshToken; // Refresh Token (7 ngày)
+    String token;
     boolean authenticated;
 }

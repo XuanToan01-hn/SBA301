@@ -1,5 +1,9 @@
 package com.buildings.dto.response.user;
 
+import com.buildings.entity.enums.UserStatus;
+import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -12,12 +16,11 @@ import java.util.Set;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UserResponse {
-    String id;
-    String username;
-    String password;
-    String firstName;
-    String lastName;
-    LocalDate dob;
-    String code;
+    private String fullName;
+    private String email;
+    private String password;
+    private String phone;
+    @Enumerated(EnumType.STRING)
+    private UserStatus status;
 }
 
