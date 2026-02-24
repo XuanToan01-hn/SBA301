@@ -64,6 +64,11 @@ bin/
 ehthumbs.db
 Thumbs.db
 
+### Environment ###
+.env
+.env.local
+.env.*.local
+
 ### Postman ###
 # Ignore environment files as they may contain secrets
 *.postman_environment.json

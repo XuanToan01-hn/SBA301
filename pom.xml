@@ -11,7 +11,7 @@
     </parent>
 
     <groupId>practice</groupId>
-    <artifactId>JAVA-L1</artifactId>
+    <artifactId>abms-be</artifactId>
     <version>0.0.1-SNAPSHOT</version>
 
     <properties>
