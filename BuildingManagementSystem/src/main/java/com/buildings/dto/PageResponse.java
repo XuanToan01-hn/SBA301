@@ -1,9 +1,12 @@
 package com.buildings.dto;
 
-import lombok.*;
-
 import java.util.Collections;
 import java.util.List;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @Builder
@@ -12,7 +15,22 @@ import java.util.List;
 public class PageResponse<T> {
 
     @Builder.Default
-    private List<T> data = Collections.emptyList();
+    private List<T> content = Collections.emptyList();
 
-    private long total;
+    private int page;
+
+    private int size;
+
+    private long totalElements;
+
+    private int totalPages;
+
+    // Backward compatibility
+    public List<T> getData() {
+        return content;
+    }
+
+    public long getTotal() {
+        return totalElements;
+    }
 }
