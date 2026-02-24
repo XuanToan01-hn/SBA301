@@ -26,10 +26,10 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- --------------------------------------------------------
 -- 1. ROLES
 -- --------------------------------------------------------
-SET @role_admin_id = 'role-admin-001';
-SET @role_manager_id = 'role-manager-001';
-SET @role_resident_id = 'role-resident-001';
-SET @role_staff_id = 'role-staff-001';
+SET @role_admin_id = UUID();
+SET @role_manager_id = UUID();
+SET @role_resident_id = UUID();
+SET @role_staff_id = UUID();
 
 INSERT INTO roles (id, code, name, description, created_at, updated_at, is_deleted) VALUES
 (@role_admin_id, 'ADMIN', 'System Administrator', 'Quản trị viên hệ thống', NOW(), NOW(), 0),
@@ -41,16 +41,16 @@ INSERT INTO roles (id, code, name, description, created_at, updated_at, is_delet
 -- 2. USERS (10 Users)
 -- --------------------------------------------------------
 -- PASS: 123456
-SET @u_admin = 'user-admin-001';
-SET @u_mgr1  = 'user-mgr-001';
-SET @u_mgr2  = 'user-mgr-002';
-SET @u_tech1 = 'user-tech-001';
-SET @u_tech2 = 'user-tech-002';
-SET @u_tech3 = 'user-tech-003';
-SET @u_res1  = 'user-res-001';
-SET @u_res2  = 'user-res-002';
-SET @u_res3  = 'user-res-003';
-SET @u_res4  = 'user-res-004';
+SET @u_admin = UUID();
+SET @u_mgr1  = UUID();
+SET @u_mgr2  = UUID();
+SET @u_tech1 = UUID();
+SET @u_tech2 = UUID();
+SET @u_tech3 = UUID();
+SET @u_res1  = UUID();
+SET @u_res2  = UUID();
+SET @u_res3  = UUID();
+SET @u_res4  = UUID();
 
 INSERT INTO users (id, full_name, email, password, phone, status, created_at, updated_at, is_deleted) VALUES
 (@u_admin, 'Admin Tổng', 'admin@bms.vn', '$2a$10$tZ8qZ5.2.g.g.g.g.g.g.g.g.g.g.g.g.g.g.g.g.g.g.g.g', '0900000001', 'ACTIVE', NOW(), NOW(), 0),
@@ -67,8 +67,8 @@ INSERT INTO users (id, full_name, email, password, phone, status, created_at, up
 -- --------------------------------------------------------
 -- 3. BUILDINGS (2 Buildings)
 -- --------------------------------------------------------
-SET @b1 = 'bld-001';
-SET @b2 = 'bld-002';
+SET @b1 = UUID();
+SET @b2 = UUID();
 
 INSERT INTO buildings (id, code, name, address, num_floors, apartments_per_floor_1br, apartments_per_floor_2br, apartments_per_floor_3br, area_1br_sqm, area_2br_sqm, area_3br_sqm, apartments_generated, created_at, updated_at, is_deleted) VALUES
 (@b1, 'TOWER-A', 'Toà Ruby (Tower A)', 'Số 1 Trần Duy Hưng', 30, 0, 0, 0, 0, 0, 0, 1, NOW(), NOW(), 0),
@@ -77,8 +77,8 @@ INSERT INTO buildings (id, code, name, address, num_floors, apartments_per_floor
 -- --------------------------------------------------------
 -- 4. APARTMENTS (10 Apartments)
 -- --------------------------------------------------------
-SET @a1 = 'apt-001'; SET @a2 = 'apt-002'; SET @a3 = 'apt-003'; SET @a4 = 'apt-004'; SET @a5 = 'apt-005';
-SET @a6 = 'apt-006'; SET @a7 = 'apt-007'; SET @a8 = 'apt-008'; SET @a9 = 'apt-009'; SET @a10 = 'apt-010';
+SET @a1 = UUID(); SET @a2 = UUID(); SET @a3 = UUID(); SET @a4 = UUID(); SET @a5 = UUID();
+SET @a6 = UUID(); SET @a7 = UUID(); SET @a8 = UUID(); SET @a9 = UUID(); SET @a10 = UUID();
 
 INSERT INTO apartments (id, building_id, code, floor_number, area_sqm, bedroom_count, status, created_at, updated_at, is_deleted) VALUES
 (@a1, @b1, 'A-0501', 5, 75.5, 2, 'OCCUPIED', NOW(), NOW(), 0),
@@ -119,8 +119,8 @@ INSERT INTO user_roles (id, user_id, role_id, created_at, updated_at, is_deleted
 -- --------------------------------------------------------
 -- 7. MAINTENANCE_REQUESTS (8 Requests with diff status)
 -- --------------------------------------------------------
-SET @r1 = 'req-001'; SET @r2 = 'req-002'; SET @r3 = 'req-003'; SET @r4 = 'req-004';
-SET @r5 = 'req-005'; SET @r6 = 'req-006'; SET @r7 = 'req-007'; SET @r8 = 'req-008';
+SET @r1 = UUID(); SET @r2 = UUID(); SET @r3 = UUID(); SET @r4 = UUID();
+SET @r5 = UUID(); SET @r6 = UUID(); SET @r7 = UUID(); SET @r8 = UUID();
 
 INSERT INTO maintenance_requests (id, code, requester_id, apartment_id, building_id, category, priority, request_status, title, description, scope, created_at, updated_at, is_deleted) VALUES
 (@r1, 'REQ-001', @u_res1, @a1, @b1, 'REPAIR', 'HIGH', 'IN_PROGRESS', 'Hỏng vòi nước', 'Vòi nước bồn rửa bát bị rò rỉ mạnh', 'PRIVATE', DATE_SUB(NOW(), INTERVAL 5 DAY), NOW(), 0),
@@ -145,7 +145,7 @@ INSERT INTO maintenance_schedules (id, maintenance_request_id, proposed_time, es
 -- --------------------------------------------------------
 -- 9. MAINTENANCE_QUOTATIONS (5 records)
 -- --------------------------------------------------------
-SET @q1 = 'q-001'; SET @q2 = 'q-002'; SET @q3 = 'q-003';
+SET @q1 = UUID(); SET @q2 = UUID(); SET @q3 = UUID();
 
 INSERT INTO maintenance_quotations (id, maintenance_request_id, code, title, status, total_amount, created_at, updated_at, is_deleted) VALUES
 (@q1, @r6, 'QT-elevator', 'Báo giá linh kiện thang máy', 'SENT', 5500000.00, NOW(), NOW(), 0),

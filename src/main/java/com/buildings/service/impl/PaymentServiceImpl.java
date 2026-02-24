@@ -21,7 +21,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     public PaymentResponse createPaymentDemo() {
         // 🔥 HARD CODE DATA
-        String billId = UUID.randomUUID().toString();
+        UUID billId = UUID.randomUUID();
         String billCode = "HD-2026-001";
         long originalAmount = 1500000L;
 

@@ -5,16 +5,17 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
 public class MaintenanceReviewResponse {
-    private String id;
-    private String maintenanceRequestId;
+    private UUID id;
+    private UUID maintenanceRequestId;
     private Integer rating;
     private String comment;
     private ReviewOutcome outcome;
-    private String reviewedById;
+    private UUID reviewedById;
     private String reviewedByName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

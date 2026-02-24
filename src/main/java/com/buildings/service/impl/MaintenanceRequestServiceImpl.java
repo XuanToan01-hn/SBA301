@@ -35,6 +35,7 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -58,12 +59,12 @@ public class MaintenanceRequestServiceImpl implements MaintenanceRequestService 
         entity.setCode(generateCode());
         entity.setRequestStatus(RequestStatus.PENDING);
 
-        if (StringUtils.hasText(request.getBuildingId())) {
+        if (request.getBuildingId() != null) {
             Building building = buildingRepository.findById(request.getBuildingId()).orElse(null);
             entity.setBuilding(building);
         }
 
-        if (request.getScope() == RequestScope.PRIVATE && StringUtils.hasText(request.getApartmentId())) {
+        if (request.getScope() == RequestScope.PRIVATE && request.getApartmentId() != null) {
             Apartment apartment = apartmentRepository.findById(request.getApartmentId()).orElse(null);
             entity.setApartment(apartment);
         }
@@ -75,7 +76,7 @@ public class MaintenanceRequestServiceImpl implements MaintenanceRequestService 
 
     @Override
     @Transactional
-    public MaintenanceRequestResponse updateRequest(String id, MaintenanceRequestUpdateRequest request) {
+    public MaintenanceRequestResponse updateRequest(UUID id, MaintenanceRequestUpdateRequest request) {
         log.info("Updating maintenance request: {}", id);
         MaintenanceRequest entity = findRequestOrThrow(id);
         maintenanceMapper.updateMaintenanceRequest(entity, request);
@@ -109,13 +110,13 @@ public class MaintenanceRequestServiceImpl implements MaintenanceRequestService 
     }
 
     @Override
-    public MaintenanceRequestResponse getRequestById(String id) {
+    public MaintenanceRequestResponse getRequestById(UUID id) {
         return maintenanceMapper.toMaintenanceRequestResponse(findRequestOrThrow(id));
     }
 
     @Override
     @Transactional
-    public MaintenanceRequestResponse cancelRequest(String id, MaintenanceCancelRequest request) {
+    public MaintenanceRequestResponse cancelRequest(UUID id, MaintenanceCancelRequest request) {
         MaintenanceRequest entity = findRequestOrThrow(id);
         entity.setRequestStatus(RequestStatus.CANCELLED);
         entity.setClosedAt(LocalDateTime.now());
@@ -127,7 +128,7 @@ public class MaintenanceRequestServiceImpl implements MaintenanceRequestService 
 
     @Override
     @Transactional
-    public MaintenanceRequestResponse assignRequest(String id, MaintenanceAssignRequest request) {
+    public MaintenanceRequestResponse assignRequest(UUID id, MaintenanceAssignRequest request) {
         MaintenanceRequest entity = findRequestOrThrow(id);
         User staff = userRepository.findById(request.getStaffId())
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Staff not found"));
@@ -138,7 +139,7 @@ public class MaintenanceRequestServiceImpl implements MaintenanceRequestService 
         return maintenanceMapper.toMaintenanceRequestResponse(saved);
     }
 
-    private MaintenanceRequest findRequestOrThrow(String id) {
+    private MaintenanceRequest findRequestOrThrow(UUID id) {
         return maintenanceRequestRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Maintenance request not found"));
     }
@@ -153,7 +154,7 @@ public class MaintenanceRequestServiceImpl implements MaintenanceRequestService 
         };
     }
 
-    private void logAction(String requestId, String action, String note) {
+    private void logAction(UUID requestId, String action, String note) {
         maintenanceLogRepository.save(MaintenanceLog.builder()
                 .requestId(requestId).action(action).note(note).build());
     }

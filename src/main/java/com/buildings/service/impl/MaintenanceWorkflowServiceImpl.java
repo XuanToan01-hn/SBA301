@@ -19,6 +19,7 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,7 +37,7 @@ public class MaintenanceWorkflowServiceImpl implements MaintenanceWorkflowServic
 
     @Override
     @Transactional
-    public MaintenanceResourceResponse addResource(String requestId, MaintenanceResourceRequest request) {
+    public MaintenanceResourceResponse addResource(UUID requestId, MaintenanceResourceRequest request) {
         MaintenanceRequest maintenanceRequest = findRequestOrThrow(requestId);
         MaintenanceResource resource = maintenanceMapper.toMaintenanceResource(request);
         resource.setMaintenanceRequest(maintenanceRequest);
@@ -46,7 +47,7 @@ public class MaintenanceWorkflowServiceImpl implements MaintenanceWorkflowServic
     }
 
     @Override
-    public List<MaintenanceResourceResponse> getResourcesByRequestId(String requestId) {
+    public List<MaintenanceResourceResponse> getResourcesByRequestId(UUID requestId) {
         findRequestOrThrow(requestId);
         return maintenanceResourceRepository.findByMaintenanceRequestId(requestId).stream()
                 .map(maintenanceMapper::toMaintenanceResourceResponse)
@@ -54,7 +55,7 @@ public class MaintenanceWorkflowServiceImpl implements MaintenanceWorkflowServic
     }
 
     @Override
-    public List<MaintenanceLogResponse> getLogs(String requestId) {
+    public List<MaintenanceLogResponse> getLogs(UUID requestId) {
         findRequestOrThrow(requestId);
         return maintenanceLogRepository.findByRequestId(requestId).stream()
                 .map(maintenanceMapper::toMaintenanceLogResponse)
@@ -63,7 +64,7 @@ public class MaintenanceWorkflowServiceImpl implements MaintenanceWorkflowServic
 
     @Override
     @Transactional
-    public MaintenanceScheduleResponse proposeSchedule(String requestId, MaintenanceScheduleRequest request) {
+    public MaintenanceScheduleResponse proposeSchedule(UUID requestId, MaintenanceScheduleRequest request) {
         MaintenanceRequest maintenanceRequest = findRequestOrThrow(requestId);
         MaintenanceSchedule schedule = maintenanceMapper.toMaintenanceSchedule(request);
         schedule.setMaintenanceRequest(maintenanceRequest);
@@ -75,7 +76,7 @@ public class MaintenanceWorkflowServiceImpl implements MaintenanceWorkflowServic
     }
 
     @Override
-    public List<MaintenanceScheduleResponse> getSchedulesByRequestId(String requestId) {
+    public List<MaintenanceScheduleResponse> getSchedulesByRequestId(UUID requestId) {
         findRequestOrThrow(requestId);
         return maintenanceScheduleRepository.findByMaintenanceRequestIdOrderByCreatedAtAsc(requestId).stream()
                 .map(maintenanceMapper::toMaintenanceScheduleResponse)
@@ -84,7 +85,7 @@ public class MaintenanceWorkflowServiceImpl implements MaintenanceWorkflowServic
 
     @Override
     @Transactional
-    public MaintenanceScheduleResponse respondToSchedule(String requestId, String scheduleId, ScheduleRespondRequest request) {
+    public MaintenanceScheduleResponse respondToSchedule(UUID requestId, UUID scheduleId, ScheduleRespondRequest request) {
         MaintenanceRequest maintenanceRequest = findRequestOrThrow(requestId);
         MaintenanceSchedule schedule = maintenanceScheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Schedule not found"));
@@ -132,7 +133,7 @@ public class MaintenanceWorkflowServiceImpl implements MaintenanceWorkflowServic
 
     @Override
     @Transactional
-    public MaintenanceProgressResponse addProgress(String requestId, MaintenanceProgressRequest request) {
+    public MaintenanceProgressResponse addProgress(UUID requestId, MaintenanceProgressRequest request) {
         MaintenanceRequest maintenanceRequest = findRequestOrThrow(requestId);
         MaintenanceProgress progress = maintenanceMapper.toMaintenanceProgress(request);
         progress.setMaintenanceRequest(maintenanceRequest);
@@ -150,7 +151,7 @@ public class MaintenanceWorkflowServiceImpl implements MaintenanceWorkflowServic
     }
 
     @Override
-    public List<MaintenanceProgressResponse> getProgressByRequestId(String requestId) {
+    public List<MaintenanceProgressResponse> getProgressByRequestId(UUID requestId) {
         findRequestOrThrow(requestId);
         return maintenanceProgressRepository.findByMaintenanceRequestIdOrderByCreatedAtAsc(requestId).stream()
                 .map(maintenanceMapper::toMaintenanceProgressResponse)
@@ -159,7 +160,7 @@ public class MaintenanceWorkflowServiceImpl implements MaintenanceWorkflowServic
 
     @Override
     @Transactional
-    public MaintenanceReviewResponse submitReview(String requestId, MaintenanceReviewRequest request) {
+    public MaintenanceReviewResponse submitReview(UUID requestId, MaintenanceReviewRequest request) {
         MaintenanceRequest maintenanceRequest = findRequestOrThrow(requestId);
         if (maintenanceRequest.getRequestStatus() != RequestStatus.COMPLETED) {
             throw new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Chi co the danh gia khi yeu cau o trang thai COMPLETED");
@@ -190,19 +191,19 @@ public class MaintenanceWorkflowServiceImpl implements MaintenanceWorkflowServic
     }
 
     @Override
-    public MaintenanceReviewResponse getReviewByRequestId(String requestId) {
+    public MaintenanceReviewResponse getReviewByRequestId(UUID requestId) {
         findRequestOrThrow(requestId);
         MaintenanceReview review = maintenanceReviewRepository.findByMaintenanceRequestId(requestId)
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Review not found for this request"));
         return maintenanceMapper.toMaintenanceReviewResponse(review);
     }
 
-    private MaintenanceRequest findRequestOrThrow(String id) {
+    private MaintenanceRequest findRequestOrThrow(UUID id) {
         return maintenanceRequestRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Maintenance request not found"));
     }
 
-    private void logAction(String requestId, String action, String note) {
+    private void logAction(UUID requestId, String action, String note) {
         maintenanceLogRepository.save(MaintenanceLog.builder()
                 .requestId(requestId).action(action).note(note).build());
     }

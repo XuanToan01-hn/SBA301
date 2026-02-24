@@ -4,25 +4,26 @@ import com.buildings.dto.request.maintenance.*;
 import com.buildings.dto.response.maintenance.*;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface MaintenanceWorkflowService {
     // Resource
-    MaintenanceResourceResponse addResource(String requestId, MaintenanceResourceRequest resource);
-    List<MaintenanceResourceResponse> getResourcesByRequestId(String requestId);
+    MaintenanceResourceResponse addResource(UUID requestId, MaintenanceResourceRequest resource);
+    List<MaintenanceResourceResponse> getResourcesByRequestId(UUID requestId);
 
     // Log
-    List<MaintenanceLogResponse> getLogs(String requestId);
+    List<MaintenanceLogResponse> getLogs(UUID requestId);
 
     // Schedule
-    MaintenanceScheduleResponse proposeSchedule(String requestId, MaintenanceScheduleRequest request);
-    List<MaintenanceScheduleResponse> getSchedulesByRequestId(String requestId);
-    MaintenanceScheduleResponse respondToSchedule(String requestId, String scheduleId, ScheduleRespondRequest request);
+    MaintenanceScheduleResponse proposeSchedule(UUID requestId, MaintenanceScheduleRequest request);
+    List<MaintenanceScheduleResponse> getSchedulesByRequestId(UUID requestId);
+    MaintenanceScheduleResponse respondToSchedule(UUID requestId, UUID scheduleId, ScheduleRespondRequest request);
 
     // Progress
-    MaintenanceProgressResponse addProgress(String requestId, MaintenanceProgressRequest request);
-    List<MaintenanceProgressResponse> getProgressByRequestId(String requestId);
+    MaintenanceProgressResponse addProgress(UUID requestId, MaintenanceProgressRequest request);
+    List<MaintenanceProgressResponse> getProgressByRequestId(UUID requestId);
 
     // Review
-    MaintenanceReviewResponse submitReview(String requestId, MaintenanceReviewRequest request);
-    MaintenanceReviewResponse getReviewByRequestId(String requestId);
+    MaintenanceReviewResponse submitReview(UUID requestId, MaintenanceReviewRequest request);
+    MaintenanceReviewResponse getReviewByRequestId(UUID requestId);
 }

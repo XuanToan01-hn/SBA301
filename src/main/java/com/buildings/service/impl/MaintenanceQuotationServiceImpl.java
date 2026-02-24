@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,7 +39,7 @@ public class MaintenanceQuotationServiceImpl implements MaintenanceQuotationServ
 
     @Override
     @Transactional
-    public MaintenanceQuotationResponse createQuotation(String requestId, MaintenanceQuotationRequest request) {
+    public MaintenanceQuotationResponse createQuotation(UUID requestId, MaintenanceQuotationRequest request) {
         MaintenanceRequest maintenanceRequest = findRequestOrThrow(requestId);
 
         MaintenanceQuotation quotation = maintenanceMapper.toMaintenanceQuotation(request);
@@ -66,7 +67,7 @@ public class MaintenanceQuotationServiceImpl implements MaintenanceQuotationServ
     }
 
     @Override
-    public List<MaintenanceQuotationResponse> getQuotationsByRequestId(String requestId) {
+    public List<MaintenanceQuotationResponse> getQuotationsByRequestId(UUID requestId) {
         findRequestOrThrow(requestId);
         return maintenanceQuotationRepository.findByMaintenanceRequestId(requestId).stream()
                 .map(maintenanceMapper::toMaintenanceQuotationResponse)
@@ -74,13 +75,13 @@ public class MaintenanceQuotationServiceImpl implements MaintenanceQuotationServ
     }
 
     @Override
-    public MaintenanceQuotationResponse getQuotationById(String quotationId) {
+    public MaintenanceQuotationResponse getQuotationById(UUID quotationId) {
         return maintenanceMapper.toMaintenanceQuotationResponse(findQuotationOrThrow(quotationId));
     }
 
     @Override
     @Transactional
-    public MaintenanceQuotationResponse updateQuotation(String quotationId, MaintenanceQuotationUpdateRequest request) {
+    public MaintenanceQuotationResponse updateQuotation(UUID quotationId, MaintenanceQuotationUpdateRequest request) {
         MaintenanceQuotation quotation = findQuotationOrThrow(quotationId);
         if (quotation.getStatus() != QuotationStatus.DRAFT) {
             throw new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Chi co the chinh sua bao gia o trang thai DRAFT");
@@ -107,7 +108,7 @@ public class MaintenanceQuotationServiceImpl implements MaintenanceQuotationServ
 
     @Override
     @Transactional
-    public MaintenanceQuotationResponse updateQuotationStatus(String quotationId, QuotationStatus status) {
+    public MaintenanceQuotationResponse updateQuotationStatus(UUID quotationId, QuotationStatus status) {
         MaintenanceQuotation quotation = findQuotationOrThrow(quotationId);
         MaintenanceRequest request = quotation.getMaintenanceRequest();
 
@@ -135,17 +136,17 @@ public class MaintenanceQuotationServiceImpl implements MaintenanceQuotationServ
         return maintenanceMapper.toMaintenanceQuotationResponse(quotation);
     }
 
-    private MaintenanceRequest findRequestOrThrow(String id) {
+    private MaintenanceRequest findRequestOrThrow(UUID id) {
         return maintenanceRequestRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Maintenance request not found"));
     }
 
-    private MaintenanceQuotation findQuotationOrThrow(String id) {
+    private MaintenanceQuotation findQuotationOrThrow(UUID id) {
         return maintenanceQuotationRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Quotation not found"));
     }
 
-    private void logAction(String requestId, String action, String note) {
+    private void logAction(UUID requestId, String action, String note) {
         maintenanceLogRepository.save(MaintenanceLog.builder()
                 .requestId(requestId).action(action).note(note).build());
     }

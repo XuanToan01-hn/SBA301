@@ -6,20 +6,21 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
 public class MaintenanceScheduleResponse {
-    private String id;
-    private String maintenanceRequestId;
+    private UUID id;
+    private UUID maintenanceRequestId;
     private LocalDateTime proposedTime;
     private Integer estimatedDuration;
     private String note;
     private ScheduleStatus status;
     private ScheduleProposedBy proposedByRole;
-    private String proposedById;
+    private UUID proposedById;
     private String proposedByName;
-    private String parentScheduleId;
+    private UUID parentScheduleId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

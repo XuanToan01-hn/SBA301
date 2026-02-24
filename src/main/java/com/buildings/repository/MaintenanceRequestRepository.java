@@ -9,9 +9,10 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Repository
-public interface MaintenanceRequestRepository extends JpaRepository<MaintenanceRequest, String>, JpaSpecificationExecutor<MaintenanceRequest> {
+public interface MaintenanceRequestRepository extends JpaRepository<MaintenanceRequest, UUID>, JpaSpecificationExecutor<MaintenanceRequest> {
     boolean existsByCode(String code);
 
     List<MaintenanceRequest> findByRequestStatusAndStartedAtBefore(RequestStatus status, LocalDateTime dateTime);

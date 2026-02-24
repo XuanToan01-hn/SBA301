@@ -10,6 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -32,7 +33,7 @@ public class MaintenanceRequestCreateRequest {
 
     private Boolean isBillable;
 
-    private String apartmentId;
+    private UUID apartmentId;
 
-    private String buildingId;
+    private UUID buildingId;
 }

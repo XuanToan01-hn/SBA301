@@ -9,7 +9,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import java.util.UUID;
+
 import org.springframework.web.bind.annotation.*;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/maintenance-requests/quotations")
@@ -22,7 +26,7 @@ public class MaintenanceQuotationController {
     @GetMapping("/{quotationId}")
     @Operation(summary = "Chi tiết báo giá", description = "Lấy thông tin chi tiết của một báo giá theo ID")
     public ApiResponse<MaintenanceQuotationResponse> getQuotationById(
-            @PathVariable String quotationId) {
+            @PathVariable UUID quotationId) {
         return ApiResponse.<MaintenanceQuotationResponse>builder()
                 .result(maintenanceQuotationService.getQuotationById(quotationId))
                 .build();
@@ -31,7 +35,7 @@ public class MaintenanceQuotationController {
     @PutMapping("/{quotationId}")
     @Operation(summary = "Cập nhật báo giá", description = "Nhân viên cập nhật báo giá (chỉ khi ở trạng thái DRAFT)")
     public ApiResponse<MaintenanceQuotationResponse> updateQuotation(
-            @PathVariable String quotationId,
+            @PathVariable UUID quotationId,
             @Valid @RequestBody MaintenanceQuotationUpdateRequest request) {
         return ApiResponse.<MaintenanceQuotationResponse>builder()
                 .result(maintenanceQuotationService.updateQuotation(quotationId, request))
@@ -42,7 +46,7 @@ public class MaintenanceQuotationController {
     @Operation(summary = "Cập nhật trạng thái báo giá",
             description = "Cập nhật trạng thái báo giá: SENT (gửi cho cư dân), APPROVED/REJECTED (cư dân phản hồi)")
     public ApiResponse<MaintenanceQuotationResponse> updateQuotationStatus(
-            @PathVariable String quotationId,
+            @PathVariable UUID quotationId,
             @RequestParam QuotationStatus status) {
         return ApiResponse.<MaintenanceQuotationResponse>builder()
                 .result(maintenanceQuotationService.updateQuotationStatus(quotationId, status))

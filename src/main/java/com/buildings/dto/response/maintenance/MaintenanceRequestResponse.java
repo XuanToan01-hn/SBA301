@@ -6,11 +6,12 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
 public class MaintenanceRequestResponse {
-    private String id;
+    private UUID id;
     private String code;
     private String title;
     private String description;
@@ -24,13 +25,13 @@ public class MaintenanceRequestResponse {
     private RequestStatus requestStatus;
     private RequestPriority priority;
     private PaymentStatus paymentStatus;
-    private String requesterId;
+    private UUID requesterId;
     private String requesterName;
-    private String staffId;
+    private UUID staffId;
     private String staffName;
-    private String apartmentId;
+    private UUID apartmentId;
     private String apartmentCode;
-    private String buildingId;
+    private UUID buildingId;
     private String buildingName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

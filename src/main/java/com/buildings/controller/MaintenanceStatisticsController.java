@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/maintenance-requests")
@@ -26,7 +27,7 @@ public class MaintenanceStatisticsController {
     public ApiResponse<MaintenanceStatisticsResponse> getStatistics(
             @RequestParam(required = false) String from,
             @RequestParam(required = false) String to,
-            @RequestParam(required = false) String buildingId) {
+            @RequestParam(required = false) UUID buildingId) {
         return ApiResponse.<MaintenanceStatisticsResponse>builder()
                 .result(maintenanceStatisticsService.getStatistics(from, to, buildingId))
                 .build();

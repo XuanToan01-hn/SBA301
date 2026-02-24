@@ -4,15 +4,16 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
 public class MaintenanceProgressResponse {
-    private String id;
-    private String maintenanceRequestId;
+    private UUID id;
+    private UUID maintenanceRequestId;
     private String note;
     private Integer progressPercent;
-    private String updatedById;
+    private UUID updatedById;
     private String updatedByName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

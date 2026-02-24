@@ -7,8 +7,10 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+import java.util.UUID;
+
 @Repository
-public interface MaintenanceScheduleRepository extends JpaRepository<MaintenanceSchedule, String> {
-    List<MaintenanceSchedule> findByMaintenanceRequestIdOrderByCreatedAtAsc(String requestId);
-    List<MaintenanceSchedule> findByMaintenanceRequestIdAndStatus(String requestId, ScheduleStatus status);
+public interface MaintenanceScheduleRepository extends JpaRepository<MaintenanceSchedule, UUID> {
+    List<MaintenanceSchedule> findByMaintenanceRequestIdOrderByCreatedAtAsc(UUID requestId);
+    List<MaintenanceSchedule> findByMaintenanceRequestIdAndStatus(UUID requestId, ScheduleStatus status);
 }

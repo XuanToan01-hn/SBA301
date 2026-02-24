@@ -7,6 +7,7 @@ import com.buildings.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/payment")
@@ -17,7 +18,7 @@ public class PaymentController {
     // Tạo payment link + trả QR
     @PostMapping("/{billId}")
     public ApiResponse<PaymentResponse> createPayment(
-            @PathVariable String billId) throws Exception {
+            @PathVariable UUID billId) throws Exception {
 
         return ApiResponse.<PaymentResponse>builder()
                 .result(paymentService.createPaymentDemo())

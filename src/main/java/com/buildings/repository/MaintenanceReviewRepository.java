@@ -6,8 +6,10 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
+import java.util.UUID;
+
 @Repository
-public interface MaintenanceReviewRepository extends JpaRepository<MaintenanceReview, String> {
-    Optional<MaintenanceReview> findByMaintenanceRequestId(String requestId);
-    boolean existsByMaintenanceRequestId(String requestId);
+public interface MaintenanceReviewRepository extends JpaRepository<MaintenanceReview, UUID> {
+    Optional<MaintenanceReview> findByMaintenanceRequestId(UUID requestId);
+    boolean existsByMaintenanceRequestId(UUID requestId);
 }

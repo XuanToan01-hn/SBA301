@@ -4,13 +4,14 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
 public class MaintenanceLogResponse {
-    private String id;
+    private UUID id;
     private String action;
     private String note;
-    private String actorId;
+    private UUID actorId;
     private LocalDateTime createdAt;
 }

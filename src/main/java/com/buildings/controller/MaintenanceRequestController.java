@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/maintenance-requests")
@@ -53,7 +54,7 @@ public class MaintenanceRequestController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Chi tiết yêu cầu bảo trì", description = "Lấy thông tin chi tiết của một yêu cầu bảo trì theo ID")
-    public ApiResponse<MaintenanceRequestResponse> getRequestById(@PathVariable String id) {
+    public ApiResponse<MaintenanceRequestResponse> getRequestById(@PathVariable UUID id) {
         return ApiResponse.<MaintenanceRequestResponse>builder()
                 .result(maintenanceRequestService.getRequestById(id))
                 .build();
@@ -62,7 +63,7 @@ public class MaintenanceRequestController {
     @PutMapping("/{id}")
     @Operation(summary = "Cập nhật yêu cầu bảo trì", description = "Cư dân cập nhật thông tin yêu cầu bảo trì")
     public ApiResponse<MaintenanceRequestResponse> updateRequest(
-            @PathVariable String id,
+            @PathVariable UUID id,
             @RequestBody MaintenanceRequestUpdateRequest request) {
         return ApiResponse.<MaintenanceRequestResponse>builder()
                 .result(maintenanceRequestService.updateRequest(id, request))
@@ -72,7 +73,7 @@ public class MaintenanceRequestController {
     @PatchMapping("/{id}/cancel")
     @Operation(summary = "Huỷ yêu cầu bảo trì", description = "Cư dân hoặc quản lý huỷ yêu cầu bảo trì, có thể kèm lý do")
     public ApiResponse<MaintenanceRequestResponse> cancelRequest(
-            @PathVariable String id,
+            @PathVariable UUID id,
             @RequestBody(required = false) MaintenanceCancelRequest request) {
         return ApiResponse.<MaintenanceRequestResponse>builder()
                 .result(maintenanceRequestService.cancelRequest(id,
@@ -83,7 +84,7 @@ public class MaintenanceRequestController {
     @PatchMapping("/{id}/assign")
     @Operation(summary = "Giao yêu cầu cho nhân viên", description = "Quản lý giao yêu cầu bảo trì cho một nhân viên kỹ thuật")
     public ApiResponse<MaintenanceRequestResponse> assignRequest(
-            @PathVariable String id,
+            @PathVariable UUID id,
             @Valid @RequestBody MaintenanceAssignRequest request) {
         return ApiResponse.<MaintenanceRequestResponse>builder()
                 .result(maintenanceRequestService.assignRequest(id, request))

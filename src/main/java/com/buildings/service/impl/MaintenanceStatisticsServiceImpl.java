@@ -20,6 +20,7 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,10 +33,10 @@ public class MaintenanceStatisticsServiceImpl implements MaintenanceStatisticsSe
     private final MaintenanceMapper maintenanceMapper;
 
     @Override
-    public MaintenanceStatisticsResponse getStatistics(String from, String to, String buildingId) {
+    public MaintenanceStatisticsResponse getStatistics(String from, String to, UUID buildingId) {
         Specification<MaintenanceRequest> spec = (root, query, cb) -> cb.conjunction();
 
-        if (StringUtils.hasText(buildingId)) {
+        if (buildingId != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("building").get("id"), buildingId));
         }
 
@@ -63,7 +64,7 @@ public class MaintenanceStatisticsServiceImpl implements MaintenanceStatisticsSe
                 .mapToLong(r -> java.time.Duration.between(r.getCreatedAt(), r.getClosedAt()).toDays())
                 .average().orElse(0.0);
 
-        List<String> requestIds = allRequests.stream().map(MaintenanceRequest::getId).collect(Collectors.toList());
+        List<UUID> requestIds = allRequests.stream().map(MaintenanceRequest::getId).collect(Collectors.toList());
         double avgRating = maintenanceReviewRepository.findAll().stream()
                 .filter(rev -> requestIds.contains(rev.getMaintenanceRequest().getId()) && rev.getRating() != null)
                 .mapToInt(MaintenanceReview::getRating).average().orElse(0.0);
@@ -97,7 +98,7 @@ public class MaintenanceStatisticsServiceImpl implements MaintenanceStatisticsSe
                 .map(entry -> {
                     User staff = entry.getKey();
                     List<MaintenanceRequest> staffReqs = entry.getValue();
-                    List<String> staffReqIds = staffReqs.stream().map(MaintenanceRequest::getId).collect(Collectors.toList());
+                    List<UUID> staffReqIds = staffReqs.stream().map(MaintenanceRequest::getId).collect(Collectors.toList());
 
                     double avgRating = allReviews.stream()
                             .filter(rev -> staffReqIds.contains(rev.getMaintenanceRequest().getId()) && rev.getRating() != null)

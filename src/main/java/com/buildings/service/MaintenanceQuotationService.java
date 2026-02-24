@@ -6,11 +6,12 @@ import com.buildings.dto.response.maintenance.MaintenanceQuotationResponse;
 import com.buildings.entity.enums.QuotationStatus;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface MaintenanceQuotationService {
-    MaintenanceQuotationResponse createQuotation(String requestId, MaintenanceQuotationRequest quotation);
-    List<MaintenanceQuotationResponse> getQuotationsByRequestId(String requestId);
-    MaintenanceQuotationResponse getQuotationById(String quotationId);
-    MaintenanceQuotationResponse updateQuotation(String quotationId, MaintenanceQuotationUpdateRequest request);
-    MaintenanceQuotationResponse updateQuotationStatus(String quotationId, QuotationStatus status);
+    MaintenanceQuotationResponse createQuotation(UUID requestId, MaintenanceQuotationRequest quotation);
+    List<MaintenanceQuotationResponse> getQuotationsByRequestId(UUID requestId);
+    MaintenanceQuotationResponse getQuotationById(UUID quotationId);
+    MaintenanceQuotationResponse updateQuotation(UUID quotationId, MaintenanceQuotationUpdateRequest request);
+    MaintenanceQuotationResponse updateQuotationStatus(UUID quotationId, QuotationStatus status);
 }

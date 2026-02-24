@@ -88,10 +88,11 @@ public class GlobalExceptionHandler {
     // 6. Xử lý lỗi HttpMessageNotReadableException (JSON không đúng định dạng)
     @ExceptionHandler(value = org.springframework.http.converter.HttpMessageNotReadableException.class)
     ResponseEntity<ApiResponse<?>> handlingHttpMessageNotReadableException(org.springframework.http.converter.HttpMessageNotReadableException exception) {
+        log.error("HttpMessageNotReadableException: ", exception);
         return ResponseEntity.badRequest()
                 .body(ApiResponse.builder()
                         .code(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode())
-                        .message("Malformed JSON request or invalid data format")
+                        .message("Malformed JSON request or invalid data format: " + exception.getMessage())
                         .build());
     }
 }

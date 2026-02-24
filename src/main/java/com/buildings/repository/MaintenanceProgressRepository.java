@@ -6,7 +6,9 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+import java.util.UUID;
+
 @Repository
-public interface MaintenanceProgressRepository extends JpaRepository<MaintenanceProgress, String> {
-    List<MaintenanceProgress> findByMaintenanceRequestIdOrderByCreatedAtAsc(String requestId);
+public interface MaintenanceProgressRepository extends JpaRepository<MaintenanceProgress, UUID> {
+    List<MaintenanceProgress> findByMaintenanceRequestIdOrderByCreatedAtAsc(UUID requestId);
 }

@@ -7,7 +7,9 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+import java.util.UUID;
+
 @Repository
-public interface MaintenanceQuotationRepository extends JpaRepository<MaintenanceQuotation, String>, JpaSpecificationExecutor<MaintenanceQuotation> {
-    List<MaintenanceQuotation> findByMaintenanceRequestId(String maintenanceRequestId);
+public interface MaintenanceQuotationRepository extends JpaRepository<MaintenanceQuotation, UUID>, JpaSpecificationExecutor<MaintenanceQuotation> {
+    List<MaintenanceQuotation> findByMaintenanceRequestId(UUID maintenanceRequestId);
 }
