@@ -1,21 +1,76 @@
 package com.buildings.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import com.buildings.entity.enums.ApartmentStatus;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+
 
 @Entity
-@Table(name = "apartments")
-@SuperBuilder
+@Table(name = "apartments",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"building_id", "code"}, name = "uk_apartment_code_building")
+        })
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Getter
-@Setter
-public class Apartment extends BaseEntity{
+@SuperBuilder
+public class Apartment extends BaseEntity {
 
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "building_id", nullable = false, foreignKey = @ForeignKey(name = "fk_apartment_building"))
+    private Building building;
+
+    @Column(nullable = false, length = 50)
     private String code;
+
+    @Column(name = "floor_number", nullable = false)
+    private Integer floorNumber;
+
+    @Column(name = "area_sqm", nullable = false, precision = 10, scale = 2)
+    private BigDecimal areaSqm;
+
+    @Column(name = "bedroom_count", nullable = false)
+    private Integer bedroomCount;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private ApartmentStatus status = ApartmentStatus.AVAILABLE;
+
+    @Column(length = 1000)
+    private String notes;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    // Relationships
+    @OneToMany(mappedBy = "apartment", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ApartmentResident> residents;
+
+
+    @Transient
+    public Long getCurrentResidentsCount() {
+        if (residents == null) return 0L;
+        return residents.stream()
+                .filter(r -> r.getMovedOutAt() == null)
+                .count();
+    }
+
 }
+
