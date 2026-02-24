@@ -9,12 +9,12 @@ import org.mapstruct.Mapping;
 public interface BuildingMapper {
 
     @Mapping(target = "currentApartmentCount", source = "apartmentCount")
-    @Mapping(target = "apartmentsPerFloor1br", source = "apartmentsPerFloor1Br")
-    @Mapping(target = "apartmentsPerFloor2br", source = "apartmentsPerFloor2Br")
-    @Mapping(target = "apartmentsPerFloor3br", source = "apartmentsPerFloor3Br")
-    @Mapping(target = "area1brSqm", source = "area1BrSqm")
-    @Mapping(target = "area2brSqm", source = "area2BrSqm")
-    @Mapping(target = "area3brSqm", source = "area3BrSqm")
+    @Mapping(target = "apartmentsPerFloor1br", source = "building.apartmentsPerFloor1Br")
+    @Mapping(target = "apartmentsPerFloor2br", source = "building.apartmentsPerFloor2Br")
+    @Mapping(target = "apartmentsPerFloor3br", source = "building.apartmentsPerFloor3Br")
+    @Mapping(target = "area1brSqm", source = "building.area1BrSqm")
+    @Mapping(target = "area2brSqm", source = "building.area2BrSqm")
+    @Mapping(target = "area3brSqm", source = "building.area3BrSqm")
     BuildingDTO toDTO(Building building, long apartmentCount);
 
     @Mapping(target = "currentApartmentCount", ignore = true)

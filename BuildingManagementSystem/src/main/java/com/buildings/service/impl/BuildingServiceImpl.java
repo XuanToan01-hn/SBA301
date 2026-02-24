@@ -200,16 +200,11 @@ public class BuildingServiceImpl implements BuildingService {
                 e.getApartmentsPerFloor1Br() != d.getApartmentsPerFloor1br() ||
                 e.getApartmentsPerFloor2Br() != d.getApartmentsPerFloor2br() ||
                 e.getApartmentsPerFloor3Br() != d.getApartmentsPerFloor3br() ||
-                compareBigDecimal(e.getArea1BrSqm(), d.getArea1brSqm()) != 0 ||
-                compareBigDecimal(e.getArea2BrSqm(), d.getArea2brSqm()) != 0 ||
-                compareBigDecimal(e.getArea3BrSqm(), d.getArea3brSqm()) != 0;
+                e.getArea1BrSqm() != d.getArea1brSqm() ||
+                e.getArea2BrSqm() != d.getArea2brSqm() ||
+                e.getArea3BrSqm() != d.getArea3brSqm();
     }
 
-    private int compareBigDecimal(java.math.BigDecimal b1, java.math.BigDecimal b2) {
-        if (b1 == null && b2 == null) return 0;
-        if (b1 == null || b2 == null) return 1;
-        return b1.compareTo(b2);
-    }
 
     @Override public boolean buildingCodeExists(String code) { return buildingRepository.existsByCode(code); }
     @Override public boolean buildingNameExists(String name) { return buildingRepository.existsByName(name); }

@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 
 @Data
@@ -19,10 +20,10 @@ import java.time.LocalDateTime;
 @Builder
 public class ApartmentDTO {
 
-    private Long id;
+    private UUID id;
 
     @NotNull(message = "Building ID is required")
-    private Long buildingId;
+    private UUID buildingId;
 
     private String buildingName;
     private String buildingCode;
@@ -33,16 +34,16 @@ public class ApartmentDTO {
 
     @NotNull(message = "Floor number is required")
     @Min(value = 1, message = "Floor number must be at least 1")
-    private Integer floorNumber;
+    private int floorNumber;
 
     @NotNull(message = "Area is required")
     @DecimalMin(value = "0.01", message = "Area must be greater than 0")
-    private BigDecimal areaSqm;
+    private double areaSqm;
 
     @NotNull(message = "Bedroom count is required")
     @Min(value = 1, message = "Bedroom count must be at least 1")
     @Max(value = 3, message = "Bedroom count must not exceed 3")
-    private Integer bedroomCount;
+    private int bedroomCount;
 
     @NotNull(message = "Status is required")
     private ApartmentStatus status;
@@ -56,7 +57,7 @@ public class ApartmentDTO {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updatedAt;
 
-    private Long currentResidentsCount;
+    private int currentResidentsCount;
     private Boolean hasOwner;
     private String ownerName;
     private String ownerEmail;

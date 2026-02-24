@@ -37,7 +37,7 @@ public class Apartment extends BaseEntity {
     @Column(name = "floor_number", nullable = false)
     private int floorNumber;
 
-    @Column(name = "area_sqm", nullable = false, precision = 10, scale = 2)
+    @Column(name = "area_sqm", nullable = false)
     private double areaSqm;
 
     @Column(name = "bedroom_count", nullable = false)
