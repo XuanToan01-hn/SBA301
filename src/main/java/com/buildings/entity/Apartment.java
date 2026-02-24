@@ -35,17 +35,16 @@ public class Apartment extends BaseEntity {
     private String code;
 
     @Column(name = "floor_number", nullable = false)
-    private Integer floorNumber;
+    private int floorNumber;
 
-    @Column(name = "area_sqm", nullable = false, precision = 10, scale = 2)
-    private BigDecimal areaSqm;
+    @Column(name = "area_sqm", nullable = false)
+    private double areaSqm;
 
     @Column(name = "bedroom_count", nullable = false)
-    private Integer bedroomCount;
+    private int bedroomCount;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    @Builder.Default
     private ApartmentStatus status = ApartmentStatus.AVAILABLE;
 
     @Column(length = 1000)

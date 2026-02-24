@@ -13,6 +13,8 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
+@Getter
+@Setter
 public class Building extends BaseEntity {
 
     @Column(nullable = false)

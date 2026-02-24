@@ -18,7 +18,13 @@ public enum ErrorCode {
     RESOURCE_NOT_FOUND(1009, "Resource not found", HttpStatus.NOT_FOUND),
     INVALID_UUID(1010, "Invalid UUID format", HttpStatus.BAD_REQUEST),
     INVALID_EMAIL_PASSWORD(1010, "Invalid email or password", HttpStatus.BAD_REQUEST),
-
+    BUILDING_CODE_ARE_EXIST(1011, "Building code are exist", HttpStatus.NOT_FOUND),
+    BUILDING_NAME_ARE_EXIST(1011, "Building name are exist", HttpStatus.NOT_FOUND),
+    BUILDING_NOT_FOUND(1012, "Building not found", HttpStatus.NOT_FOUND),
+    CANNOT_MODIFY_LAYOUT(1013, "Can't modify layout ", HttpStatus.BAD_REQUEST),
+    BUILD_HAS_APARTMENT(1014, "Build has apartment", HttpStatus.BAD_REQUEST),
+    APARTMENT_ALREADY_GENERATED(1015, "Apartment already generated", HttpStatus.BAD_REQUEST),
+    APARTMENT_NOT_FOUND(1016, "Apartment not found", HttpStatus.NOT_FOUND),
     ;
 
     ErrorCode(int code, String message, HttpStatus statusCode) {

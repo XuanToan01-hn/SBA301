@@ -18,6 +18,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.type.SqlTypes;
 
 @MappedSuperclass // Đánh dấu đây là class cha, không tạo bảng riêng
 @Getter

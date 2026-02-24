@@ -33,9 +33,10 @@ public class User extends BaseEntity{
     @Enumerated(EnumType.STRING)
     private UserStatus status;
 
-//    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-//    private List<UserRole> userRoles;
-//
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<UserRole> userRoles;
+
 //    @OneToMany(mappedBy = "user")
 //    private List<ApartmentResident> apartmentResidents;
 

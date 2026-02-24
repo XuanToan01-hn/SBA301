@@ -1,4 +1,4 @@
-//package com.buildings.entity;
+package com.buildings.entity;//package com.buildings.entity;
 //
 //import com.buildings.entity.enums.PaymentStatus;
 //import jakarta.persistence.*;
