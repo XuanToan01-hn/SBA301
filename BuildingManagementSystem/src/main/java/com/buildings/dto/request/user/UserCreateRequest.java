@@ -1,5 +1,9 @@
 package com.buildings.dto.request.user;
 
+import com.buildings.entity.enums.UserStatus;
+import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -12,14 +16,15 @@ import java.time.LocalDate;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UserCreateRequest {
-    @Size(min = 4, message = "USERNAME_INVALID")
-    String username;
+    private String fullName;
 
-    @Size(min = 6, message = "INVALID_PASSWORD")
-    String password;
+    private String email;
 
-    String firstName;
-    String lastName;
-    LocalDate dob;
+    private String password;
+
+    private String phone;
+
+    @Enumerated(EnumType.STRING)
+    private UserStatus status;
 }
 

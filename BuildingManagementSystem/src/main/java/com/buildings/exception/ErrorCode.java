@@ -17,6 +17,8 @@ public enum ErrorCode {
     INVALID_TOKEN(1008, "Token is invalid", HttpStatus.UNAUTHORIZED),
     RESOURCE_NOT_FOUND(1009, "Resource not found", HttpStatus.NOT_FOUND),
     INVALID_UUID(1010, "Invalid UUID format", HttpStatus.BAD_REQUEST),
+    INVALID_EMAIL_PASSWORD(1010, "Invalid email or password", HttpStatus.BAD_REQUEST),
+
     ;
 
     ErrorCode(int code, String message, HttpStatus statusCode) {
