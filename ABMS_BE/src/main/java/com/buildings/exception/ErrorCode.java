@@ -24,6 +24,7 @@ public enum ErrorCode {
     CANNOT_MODIFY_LAYOUT(1013, "Can't modify layout ", HttpStatus.BAD_REQUEST),
     BUILD_HAS_APARTMENT(1014, "Build has apartment", HttpStatus.BAD_REQUEST),
     APARTMENT_ALREADY_GENERATED(1015, "Apartment already generated", HttpStatus.BAD_REQUEST),
+    ROLE_NOT_EXISTED(1016, "Role not existed", HttpStatus.NOT_FOUND),
     ;
 
     ErrorCode(int code, String message, HttpStatus statusCode) {
