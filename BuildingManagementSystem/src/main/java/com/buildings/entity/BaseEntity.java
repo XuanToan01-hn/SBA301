@@ -29,7 +29,7 @@ public class BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @JdbcTypeCode(SqlTypes.CHAR)   // 🔥 QUAN TRỌNG
+    @JdbcTypeCode(SqlTypes.CHAR)
     @Column(length = 36)
     private UUID id;
 
