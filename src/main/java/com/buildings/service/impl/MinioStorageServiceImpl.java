@@ -25,7 +25,7 @@ public class MinioStorageServiceImpl implements FileStorageService {
         String originalFilename = file.getOriginalFilename() != null
                 ? file.getOriginalFilename()
                 : "file";
-        String objectName = folder + "/" + UUID.randomUUID() + "_" + originalFilename;
+        String objectName = folder + "/" + UUID.randomUUID().toString() + "_" + originalFilename;
 
         minioClient.putObject(PutObjectArgs.builder()
                 .bucket(minioConfig.getBucket())

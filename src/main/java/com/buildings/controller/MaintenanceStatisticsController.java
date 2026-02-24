@@ -4,22 +4,21 @@ import com.buildings.dto.ApiResponse;
 import com.buildings.dto.response.maintenance.MaintenanceRequestResponse;
 import com.buildings.dto.response.maintenance.MaintenanceStatisticsResponse;
 import com.buildings.dto.response.maintenance.StaffWorkloadResponse;
-import com.buildings.service.MaintenanceService;
+import com.buildings.service.MaintenanceStatisticsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
-@RequestMapping("/maintenance-requests")
+@RequestMapping("/api/v1/maintenance-requests")
 @RequiredArgsConstructor
 @Tag(name = "Maintenance - Statistics", description = "Reporting: statistics, staff workload, overdue requests")
 public class MaintenanceStatisticsController {
 
-    private final MaintenanceService maintenanceService;
+    private final MaintenanceStatisticsService maintenanceStatisticsService;
 
     @GetMapping("/statistics")
     @Operation(summary = "Thống kê bảo trì",
@@ -27,9 +26,9 @@ public class MaintenanceStatisticsController {
     public ApiResponse<MaintenanceStatisticsResponse> getStatistics(
             @RequestParam(required = false) String from,
             @RequestParam(required = false) String to,
-            @RequestParam(required = false) UUID buildingId) {
+            @RequestParam(required = false) String buildingId) {
         return ApiResponse.<MaintenanceStatisticsResponse>builder()
-                .result(maintenanceService.getStatistics(from, to, buildingId))
+                .result(maintenanceStatisticsService.getStatistics(from, to, buildingId))
                 .build();
     }
 
@@ -38,7 +37,7 @@ public class MaintenanceStatisticsController {
             description = "Thống kê số lượng yêu cầu được giao và rating trung bình của từng nhân viên")
     public ApiResponse<List<StaffWorkloadResponse>> getStaffWorkload() {
         return ApiResponse.<List<StaffWorkloadResponse>>builder()
-                .result(maintenanceService.getStaffWorkload())
+                .result(maintenanceStatisticsService.getStaffWorkload())
                 .build();
     }
 
@@ -47,7 +46,7 @@ public class MaintenanceStatisticsController {
             description = "Lấy danh sách các yêu cầu đang IN_PROGRESS nhưng đã bắt đầu hơn 7 ngày mà chưa hoàn thành")
     public ApiResponse<List<MaintenanceRequestResponse>> getOverdueRequests() {
         return ApiResponse.<List<MaintenanceRequestResponse>>builder()
-                .result(maintenanceService.getOverdueRequests())
+                .result(maintenanceStatisticsService.getOverdueRequests())
                 .build();
     }
 }

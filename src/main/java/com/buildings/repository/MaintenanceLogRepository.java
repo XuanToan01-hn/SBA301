@@ -6,9 +6,8 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.UUID;
 
 @Repository
-public interface MaintenanceLogRepository extends JpaRepository<MaintenanceLog, UUID>, JpaSpecificationExecutor<MaintenanceLog> {
-    List<MaintenanceLog> findByRequestId(UUID requestId);
+public interface MaintenanceLogRepository extends JpaRepository<MaintenanceLog, String>, JpaSpecificationExecutor<MaintenanceLog> {
+    List<MaintenanceLog> findByRequestId(String requestId);
 }

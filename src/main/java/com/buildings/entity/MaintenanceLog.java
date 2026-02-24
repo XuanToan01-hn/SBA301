@@ -1,7 +1,5 @@
 package com.buildings.entity;
 
-import java.util.UUID;
-
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -18,9 +16,11 @@ import lombok.experimental.SuperBuilder;
 @Setter
 public class MaintenanceLog extends BaseEntity {
 
-    private UUID requestId;
+    @Column(columnDefinition = "VARCHAR(36)")
+    private String requestId;
 
-    private UUID actorId;
+    @Column(columnDefinition = "VARCHAR(36)")
+    private String actorId;
 
     private String action;
 

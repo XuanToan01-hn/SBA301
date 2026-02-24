@@ -7,7 +7,7 @@ import com.buildings.dto.request.maintenance.MaintenanceAssignRequest;
 import com.buildings.dto.request.maintenance.MaintenanceRequestCreateRequest;
 import com.buildings.dto.request.maintenance.MaintenanceRequestUpdateRequest;
 import com.buildings.dto.response.maintenance.MaintenanceRequestResponse;
-import com.buildings.service.MaintenanceService;
+import com.buildings.service.MaintenanceRequestService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -15,22 +15,21 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
-@RequestMapping("/maintenance-requests")
+@RequestMapping("/api/v1/maintenance-requests")
 @RequiredArgsConstructor
 @Tag(name = "Maintenance - Requests", description = "Core request lifecycle: create, list, update, assign, cancel")
 public class MaintenanceRequestController {
 
-    private final MaintenanceService maintenanceService;
+    private final MaintenanceRequestService maintenanceRequestService;
 
     @PostMapping
     @Operation(summary = "Tạo yêu cầu bảo trì", description = "Cư dân tạo yêu cầu bảo trì mới")
     public ApiResponse<MaintenanceRequestResponse> createRequest(
             @Valid @RequestBody MaintenanceRequestCreateRequest request) {
         return ApiResponse.<MaintenanceRequestResponse>builder()
-                .result(maintenanceService.createRequest(request))
+                .result(maintenanceRequestService.createRequest(request))
                 .build();
     }
 
@@ -43,40 +42,40 @@ public class MaintenanceRequestController {
             @RequestParam(required = false, defaultValue = "true") boolean pagination) {
         if (pagination) {
             return ApiResponse.<PageResponse<MaintenanceRequestResponse>>builder()
-                    .result(maintenanceService.getRequests(keyword, page, size))
+                    .result(maintenanceRequestService.getRequests(keyword, page, size))
                     .build();
         } else {
             return ApiResponse.<List<MaintenanceRequestResponse>>builder()
-                    .result(maintenanceService.getAllRequests(keyword))
+                    .result(maintenanceRequestService.getAllRequests(keyword))
                     .build();
         }
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Chi tiết yêu cầu bảo trì", description = "Lấy thông tin chi tiết của một yêu cầu bảo trì theo ID")
-    public ApiResponse<MaintenanceRequestResponse> getRequestById(@PathVariable UUID id) {
+    public ApiResponse<MaintenanceRequestResponse> getRequestById(@PathVariable String id) {
         return ApiResponse.<MaintenanceRequestResponse>builder()
-                .result(maintenanceService.getRequestById(id))
+                .result(maintenanceRequestService.getRequestById(id))
                 .build();
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Cập nhật yêu cầu bảo trì", description = "Cư dân cập nhật thông tin yêu cầu bảo trì")
     public ApiResponse<MaintenanceRequestResponse> updateRequest(
-            @PathVariable UUID id,
+            @PathVariable String id,
             @RequestBody MaintenanceRequestUpdateRequest request) {
         return ApiResponse.<MaintenanceRequestResponse>builder()
-                .result(maintenanceService.updateRequest(id, request))
+                .result(maintenanceRequestService.updateRequest(id, request))
                 .build();
     }
 
     @PatchMapping("/{id}/cancel")
     @Operation(summary = "Huỷ yêu cầu bảo trì", description = "Cư dân hoặc quản lý huỷ yêu cầu bảo trì, có thể kèm lý do")
     public ApiResponse<MaintenanceRequestResponse> cancelRequest(
-            @PathVariable UUID id,
+            @PathVariable String id,
             @RequestBody(required = false) MaintenanceCancelRequest request) {
         return ApiResponse.<MaintenanceRequestResponse>builder()
-                .result(maintenanceService.cancelRequest(id,
+                .result(maintenanceRequestService.cancelRequest(id,
                         request != null ? request : new MaintenanceCancelRequest()))
                 .build();
     }
@@ -84,10 +83,10 @@ public class MaintenanceRequestController {
     @PatchMapping("/{id}/assign")
     @Operation(summary = "Giao yêu cầu cho nhân viên", description = "Quản lý giao yêu cầu bảo trì cho một nhân viên kỹ thuật")
     public ApiResponse<MaintenanceRequestResponse> assignRequest(
-            @PathVariable UUID id,
+            @PathVariable String id,
             @Valid @RequestBody MaintenanceAssignRequest request) {
         return ApiResponse.<MaintenanceRequestResponse>builder()
-                .result(maintenanceService.assignRequest(id, request))
+                .result(maintenanceRequestService.assignRequest(id, request))
                 .build();
     }
 }

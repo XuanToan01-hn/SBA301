@@ -12,7 +12,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Data
 @Builder
@@ -28,5 +27,5 @@ public class MaintenanceRequestUpdateRequest {
     private Boolean isBillable;
     private RequestStatus status;
     private PaymentStatus paymentStatus;
-    private UUID staffId;
+    private String staffId;
 }
