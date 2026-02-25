@@ -182,6 +182,171 @@ INSERT INTO maintenance_reviews (id, maintenance_request_id, rating, comment, ou
 -- --------------------------------------------------------
 INSERT INTO maintenance_logs (id, request_id, actor_id, action, created_at, updated_at, is_deleted) VALUES
                                                                                                         (UUID(), @r1, @u_res1, 'CREATED_REQUEST', DATE_SUB(NOW(), INTERVAL 5 DAY), DATE_SUB(NOW(), INTERVAL 5 DAY), 0),
-                                                                                                        (UUID(), @r1, @u_mgr1, 'ASSIGNED_STAFF', DATE_SUB(NOW(), INTERVAL 4 DAY), DATE_SUB(NOW(), INTERVAL 4 DAY), 0),
-                                                                                                        (UUID(), @r5, @u_res4, 'CREATED_REQUEST', DATE_SUB(NOW(), INTERVAL 2 DAY), DATE_SUB(NOW(), INTERVAL 2 DAY), 0);
+                                                                                                        (UUID(), @r1, @u_mgr1, 'ASSIGNED_STAFF', DATE_SUB(NOW(), INTERVAL 4 DAY), DATE_SUB(NOW(), INTERVAL 4 DAY), 0);
+                                                                                                        -- --------------------------------------------------------
+-- 14. SERVICES
+-- --------------------------------------------------------
 
+SET @svc_electric = UUID();
+SET @svc_water = UUID();
+SET @svc_mgmt = UUID();
+SET @svc_parking = UUID();
+
+INSERT INTO services
+(id, code, name, description, unit, is_recurring, billing_method,
+ taxable, is_active, created_at, updated_at, is_deleted)
+VALUES
+
+    (@svc_electric,
+     'ELECTRICITY',
+     'Điện sinh hoạt',
+     'Tiền điện theo chỉ số công tơ',
+     'kWh',
+     1,
+     'TIER',
+     1,
+     1,
+     NOW(),NOW(),0),
+
+    (@svc_water,
+     'WATER',
+     'Nước sinh hoạt',
+     'Tiền nước theo công tơ',
+     'm3',
+     1,
+     'METER',
+     1,
+     1,
+     NOW(),NOW(),0),
+
+    (@svc_mgmt,
+     'MGMT_FEE',
+     'Phí quản lý',
+     'Phí quản lý theo diện tích căn hộ',
+     'm2',
+     1,
+     'AREA',
+     1,
+     1,
+     NOW(),NOW(),0),
+
+    (@svc_parking,
+     'PARKING_FEE',
+     'Phí gửi xe',
+     'Phí gửi xe cố định hàng tháng',
+     'xe/tháng',
+     1,
+     'FIXED',
+     1,
+     1,
+     NOW(),NOW(),0);
+
+-- --------------------------------------------------------
+-- 15. SERVICE TARIFFS
+-- --------------------------------------------------------
+
+SET @tariff_electric = UUID();
+SET @tariff_water = UUID();
+SET @tariff_mgmt = UUID();
+SET @tariff_parking = UUID();
+
+INSERT INTO service_tariffs
+(id, service_id, price, currency,
+ effective_from, effective_to,
+ vat_rate,
+ created_at,updated_at,is_deleted)
+
+VALUES
+
+    (@tariff_electric,
+     @svc_electric,
+     0,
+     'VND',
+     '2025-01-01',
+     NULL,
+     10,
+     NOW(),NOW(),0),
+
+    (@tariff_water,
+     @svc_water,
+     15000,
+     'VND',
+     '2025-01-01',
+     NULL,
+     10,
+     NOW(),NOW(),0),
+
+    (@tariff_mgmt,
+     @svc_mgmt,
+     12000,
+     'VND',
+     '2025-01-01',
+     NULL,
+     10,
+     NOW(),NOW(),0),
+
+    (@tariff_parking,
+     @svc_parking,
+     100000,
+     'VND',
+     '2025-01-01',
+     NULL,
+     10,
+     NOW(),NOW(),0);
+-- --------------------------------------------------------
+-- 16. ELECTRICITY TIERS
+-- --------------------------------------------------------
+
+INSERT INTO service_tariff_tiers
+(id,tariff_id,min_val,max_val,price,
+ created_at,updated_at,is_deleted)
+
+VALUES
+
+    (UUID(),@tariff_electric,0,50,1800,NOW(),NOW(),0),
+    (UUID(),@tariff_electric,51,100,2000,NOW(),NOW(),0),
+    (UUID(),@tariff_electric,101,200,2500,NOW(),NOW(),0),
+    (UUID(),@tariff_electric,201,NULL,3000,NOW(),NOW(),0);
+
+-- --------------------------------------------------------
+-- 17. METER READINGS JAN-2026
+-- --------------------------------------------------------
+
+INSERT INTO meter_readings
+(id,
+ apartment_id,
+ service_id,
+ period,
+ old_index,
+ new_index,
+ consumption,
+ is_meter_reset,
+ photo_url,
+ taken_at,
+ taken_by,
+ status,
+ note,
+ created_at,
+ updated_at,
+ is_deleted)
+
+VALUES
+
+    (UUID(),@a1,@svc_electric,'2026-01',1200,1350,150,0,NULL,NOW(),@u_tech1,'CONFIRMED','Ghi điện tháng 1',NOW(),NOW(),0),
+
+    (UUID(),@a1,@svc_water,'2026-01',350,365,15,0,NULL,NOW(),@u_tech1,'CONFIRMED','Ghi nước tháng 1',NOW(),NOW(),0),
+
+
+    (UUID(),@a2,@svc_electric,'2026-01',800,900,100,0,NULL,NOW(),@u_tech2,'CONFIRMED','Điện tháng 1',NOW(),NOW(),0),
+
+    (UUID(),@a2,@svc_water,'2026-01',210,218,8,0,NULL,NOW(),@u_tech2,'CONFIRMED','Nước tháng 1',NOW(),NOW(),0),
+
+
+    (UUID(),@a3,@svc_electric,'2026-01',1500,1680,180,0,NULL,NOW(),@u_tech1,'CONFIRMED','Điện tháng 1',NOW(),NOW(),0),
+
+    (UUID(),@a3,@svc_water,'2026-01',500,520,20,0,NULL,NOW(),@u_tech1,'CONFIRMED','Nước tháng 1',NOW(),NOW(),0),
+
+
+    (UUID(),@a6,@svc_electric,'2026-01',900,980,80,0,NULL,NOW(),@u_tech3,'CONFIRMED','Điện tháng 1',NOW(),NOW(),0),
+
+    (UUID(),@a6,@svc_water,'2026-01',300,312,12,0,NULL,NOW(),@u_tech3,'CONFIRMED','Nước tháng 1',NOW(),NOW(),0);

@@ -25,6 +25,28 @@ public enum ErrorCode {
     BUILD_HAS_APARTMENT(1014, "Build has apartment", HttpStatus.BAD_REQUEST),
     APARTMENT_ALREADY_GENERATED(1015, "Apartment already generated", HttpStatus.BAD_REQUEST),
     APARTMENT_NOT_FOUND(1016, "Apartment not found", HttpStatus.NOT_FOUND),
+    // Service & Tariff errors (2xxx)
+    SERVICE_NOT_FOUND(2001, "Service not found", HttpStatus.NOT_FOUND),
+    SERVICE_CODE_EXISTED(2002, "Service code already exists", HttpStatus.BAD_REQUEST),
+    TARIFF_NOT_FOUND(2003, "Tariff not found", HttpStatus.NOT_FOUND),
+    TARIFF_OVERLAPPING(2004, "Tariff period overlaps with existing tariff", HttpStatus.BAD_REQUEST),
+    SERVICE_HAS_ACTIVE_READINGS(2005, "Cannot deactivate service: it has active meter readings in current period",
+            HttpStatus.BAD_REQUEST),
+    SERVICE_ALREADY_INACTIVE(2006, "Service is already inactive", HttpStatus.BAD_REQUEST),
+    SERVICE_ALREADY_ACTIVE(2007, "Service is already active", HttpStatus.BAD_REQUEST),
+
+    // Meter Reading errors (3xxx)
+    METER_READING_NOT_FOUND(3001, "Meter reading not found", HttpStatus.NOT_FOUND),
+    METER_READING_LOCKED(3002, "Meter reading is locked and cannot be modified", HttpStatus.BAD_REQUEST),
+    INVALID_METER_INDEX(3003, "New index must be greater than or equal to old index", HttpStatus.BAD_REQUEST),
+    DUPLICATE_METER_READING(3004, "Meter reading already exists for this apartment, service and period",
+            HttpStatus.BAD_REQUEST),
+    // File errors (5xxx)
+    FILE_UPLOAD_FAILED(5001, "Failed to upload file", HttpStatus.INTERNAL_SERVER_ERROR),
+    FILE_NOT_FOUND(5002, "File not found", HttpStatus.NOT_FOUND),
+    FILE_TYPE_NOT_ALLOWED(5003, "File type not allowed", HttpStatus.BAD_REQUEST),
+    FILE_SIZE_EXCEEDED(5004, "File size exceeded the limit", HttpStatus.BAD_REQUEST),
+    ;
     ;
 
     ErrorCode(int code, String message, HttpStatus statusCode) {
