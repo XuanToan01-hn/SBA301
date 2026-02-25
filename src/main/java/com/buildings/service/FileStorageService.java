@@ -13,6 +13,8 @@ public interface FileStorageService {
      */
     String uploadFile(MultipartFile file, String folder) throws Exception;
 
+    String saveFile(MultipartFile file, String subDirectory);
+
     /**
      * Xóa file khỏi MinIO theo objectName.
      *
@@ -24,4 +26,7 @@ public interface FileStorageService {
      * Build public URL từ objectName.
      */
     String getFileUrl(String objectName);
+
+    boolean fileExists(String fileUrl);
+
 }

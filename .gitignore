@@ -77,3 +77,6 @@ Thumbs.db
 .claude/
 .gemini/
 .chatgpt/
+
+src/main/resources/application.yaml
+.idea/
