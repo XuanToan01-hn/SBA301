@@ -20,8 +20,12 @@ public class PaymentController {
     public ApiResponse<PaymentResponse> createPayment(
             @PathVariable UUID billId) throws Exception {
 
+//        return ApiResponse.<PaymentResponse>builder()
+//                .result(paymentService.createPaymentDemo())
+//                .build();
+
         return ApiResponse.<PaymentResponse>builder()
-                .result(paymentService.createPaymentDemo())
+                .result(paymentService.createPayment(billId))
                 .build();
     }
 

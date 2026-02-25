@@ -184,3 +184,125 @@ INSERT INTO maintenance_logs (id, request_id, actor_id, action, created_at, upda
 (UUID(), @r1, @u_res1, 'CREATED_REQUEST', DATE_SUB(NOW(), INTERVAL 5 DAY), DATE_SUB(NOW(), INTERVAL 5 DAY), 0),
 (UUID(), @r1, @u_mgr1, 'ASSIGNED_STAFF', DATE_SUB(NOW(), INTERVAL 4 DAY), DATE_SUB(NOW(), INTERVAL 4 DAY), 0),
 (UUID(), @r5, @u_res4, 'CREATED_REQUEST', DATE_SUB(NOW(), INTERVAL 2 DAY), DATE_SUB(NOW(), INTERVAL 2 DAY), 0);
+
+
+-- --------------------------------------------------------
+-- 14. BILLS (4 Bills)
+-- --------------------------------------------------------
+
+SET @bill1 = UUID();
+SET @bill2 = UUID();
+SET @bill3 = UUID();
+SET @bill4 = UUID();
+
+INSERT INTO bills (id, code, total_amount, status, apartment_id, created_at, updated_at, is_deleted) VALUES
+                                                                                                         (@bill1, 'BILL-2026-001', 0, 'UNPAID', @a1, DATE_SUB(NOW(), INTERVAL 5 DAY), NOW(), 0),
+                                                                                                         (@bill2, 'BILL-2026-002', 0, 'PAID', @a2, DATE_SUB(NOW(), INTERVAL 10 DAY), NOW(), 0),
+                                                                                                         (@bill3, 'BILL-2026-003', 0, 'PARTIALLY_PAID', @a3, DATE_SUB(NOW(), INTERVAL 3 DAY), NOW(), 0),
+                                                                                                         (@bill4, 'BILL-2026-004', 0, 'OVERDUE', @a6, DATE_SUB(NOW(), INTERVAL 20 DAY), NOW(), 0);
+-- --------------------------------------------------------
+-- 15. BILL_ITEMS
+-- --------------------------------------------------------
+
+INSERT INTO bill_items (id, description, quantity, unit_price, type, bill_id, created_at, updated_at, is_deleted) VALUES
+
+-- Bill 1 (UNPAID)
+(UUID(), 'Phí quản lý tháng 02/2026', 1, 1200000.00, 'OUTSOURCE', @bill1, NOW(), NOW(), 0),
+(UUID(), 'Phí gửi xe ô tô', 1, 1500000.00, 'OUTSOURCE', @bill1, NOW(), NOW(), 0),
+
+-- Bill 2 (PAID)
+(UUID(), 'Phí quản lý tháng 01/2026', 1, 1200000.00, 'OUTSOURCE', @bill2, NOW(), NOW(), 0),
+(UUID(), 'Tiền nước', 1, 350000.00, 'OUTSOURCE', @bill2, NOW(), NOW(), 0),
+
+-- Bill 3 (PARTIAL)
+(UUID(), 'Phí quản lý tháng 02/2026', 1, 1200000.00, 'OUTSOURCE', @bill3, NOW(), NOW(), 0),
+(UUID(), 'Tiền điện', 1, 800000.00, 'OUTSOURCE', @bill3, NOW(), NOW(), 0),
+
+-- Bill 4 (OVERDUE)
+(UUID(), 'Phí bảo trì chung cư', 1, 5000000.00, 'OUTSOURCE', @bill4, NOW(), NOW(), 0);
+
+
+-- --------------------------------------------------------
+-- 16. UPDATE TOTAL AMOUNT
+-- --------------------------------------------------------
+
+UPDATE bills SET total_amount = 2700000.00 WHERE id = @bill1;
+UPDATE bills SET total_amount = 1550000.00 WHERE id = @bill2;
+UPDATE bills SET total_amount = 2000000.00 WHERE id = @bill3;
+UPDATE bills SET total_amount = 5000000.00 WHERE id = @bill4;
+
+
+
+-- --------------------------------------------------------
+-- 17. PAYMENT_TRANSACTIONS
+-- --------------------------------------------------------
+
+INSERT INTO payment_transactions (
+    id,
+    bill_id,
+    amount,
+    method,
+    currency,
+    proof_url,
+    reference_no,
+    status,
+    paid_at,
+    posted_by,
+    rejected_reason,
+    verified_at,
+    created_at,
+    updated_at,
+    is_deleted
+) VALUES
+
+-- Bill 2 (ĐÃ THANH TOÁN)
+(UUID(), @bill2, 1550000.00, 'BANK_TRANSFER', 'VND',
+ '/uploads/proof/bill2.jpg',
+ 'VCB123456',
+ 'VERIFIED',
+ DATE_SUB(NOW(), INTERVAL 8 DAY),
+ @u_admin,
+ NULL,
+ DATE_SUB(NOW(), INTERVAL 7 DAY),
+ NOW(),
+ NOW(),
+ 0),
+
+-- Bill 3 (Thanh toán 1 phần)
+(UUID(), @bill3, 1000000.00, 'BANK_TRANSFER', 'VND',
+ '/uploads/proof/bill3.jpg',
+ 'VCB789999',
+ 'VERIFIED',
+ DATE_SUB(NOW(), INTERVAL 1 DAY),
+ @u_admin,
+ NULL,
+ NOW(),
+ NOW(),
+ NOW(),
+ 0),
+
+-- Bill 1 (Đang chờ duyệt)
+(UUID(), @bill1, 2700000.00, 'BANK_TRANSFER', 'VND',
+ '/uploads/proof/bill1.jpg',
+ 'VCB000111',
+ 'PENDING',
+ NOW(),
+ NULL,
+ NULL,
+ NULL,
+ NOW(),
+ NOW(),
+ 0),
+
+-- Bill 4 (Bị từ chối)
+(UUID(), @bill4, 5000000.00, 'BANK_TRANSFER', 'VND',
+ '/uploads/proof/bill4.jpg',
+ 'VCB999888',
+ 'REJECTED',
+ DATE_SUB(NOW(), INTERVAL 15 DAY),
+ @u_admin,
+ 'Chuyển khoản sai nội dung',
+ DATE_SUB(NOW(), INTERVAL 14 DAY),
+ NOW(),
+ NOW(),
+ 0);
