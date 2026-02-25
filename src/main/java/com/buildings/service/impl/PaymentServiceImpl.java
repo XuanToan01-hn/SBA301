@@ -100,7 +100,7 @@ public class PaymentServiceImpl implements PaymentService {
                 CreatePaymentLinkRequest.builder()
                         .orderCode(orderCode)
                         .amount(amountToPay)
-                        .description("Thanh toan hoa don")
+                        .description(String.valueOf(orderCode))
                         .items(List.of(item))
                         .returnUrl("http://localhost:5172/payment-success")
                         .cancelUrl("http://localhost:5172/payment-cancel")
