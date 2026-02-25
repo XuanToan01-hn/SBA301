@@ -25,6 +25,7 @@ public enum ErrorCode {
     BUILD_HAS_APARTMENT(1014, "Build has apartment", HttpStatus.BAD_REQUEST),
     APARTMENT_ALREADY_GENERATED(1015, "Apartment already generated", HttpStatus.BAD_REQUEST),
     APARTMENT_NOT_FOUND(1016, "Apartment not found", HttpStatus.NOT_FOUND),
+    ROLE_NOT_EXISTED(1017, "Role not existed", HttpStatus.NOT_FOUND),
     ;
 
     ErrorCode(int code, String message, HttpStatus statusCode) {

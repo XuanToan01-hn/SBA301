@@ -16,6 +16,8 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/apartments")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*")
+
 public class ApartmentController {
 
     private final AparmentService apartmentService;
@@ -43,11 +45,10 @@ public class ApartmentController {
     }
 
     @GetMapping("/building/{buildingId}")
-    public ResponseEntity<ApiResponse<List<ApartmentResponse>>> getByBuilding(
-            @PathVariable UUID buildingId) {
-
+    public ResponseEntity<ApiResponse<List<ApartmentResponse>>> getByBuilding(@PathVariable UUID buildingId) {
         return ResponseEntity.ok(
                 ApiResponse.<List<ApartmentResponse>>builder()
+                        .code(200)
                         .result(apartmentService.getByBuildingId(buildingId))
                         .message("Get apartments by building successfully")
                         .build()
