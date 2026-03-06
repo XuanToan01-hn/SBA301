@@ -31,6 +31,7 @@ public class Apartment extends BaseEntity {
     @JoinColumn(name = "building_id", nullable = false, foreignKey = @ForeignKey(name = "fk_apartment_building"))
     private Building building;
 
+
     @Column(nullable = false, length = 50)
     private String code;
 
@@ -61,8 +62,8 @@ public class Apartment extends BaseEntity {
     // Relationships
     @OneToMany(mappedBy = "apartment", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ApartmentResident> residents;
-
-
+    @OneToMany(mappedBy = "apartment", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<MonthlyBills> monthlyBills;
     @Transient
     public Long getCurrentResidentsCount() {
         if (residents == null) return 0L;
