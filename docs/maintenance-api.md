@@ -1,427 +1,112 @@
 # Tài liệu API - Module Bảo trì (Maintenance)
 
-> **Phiên bản:** 2.0
-> **Cập nhật:** 2026-02-23
-> **Base URL:** `http://localhost:8080`
-> **Swagger UI:** `http://localhost:8080/swagger-ui/index.html`
+> **Phiên bản:** 3.0 | **Cập nhật:** 2026-03-06  
+> **Base URL:** `http://localhost:8080/building-management/api/v1`  
+> **Swagger UI:** `http://localhost:8080/building-management/swagger-ui/index.html`  
 > **Content-Type:** `application/json`
 
 ---
 
 ## Mục lục
 
-1. [Tổng quan hệ thống](#1-tổng-quan-hệ-thống)
-2. [Cấu trúc Response chung](#2-cấu-trúc-response-chung)
-3. [Enums & Giá trị hợp lệ](#3-enums--giá-trị-hợp-lệ)
-4. [Data Model (TypeScript Interface)](#4-data-model-typescript-interface)
-5. [API - Yêu cầu bảo trì](#5-api---yêu-cầu-bảo-trì)
-6. [API - Báo giá](#6-api---báo-giá)
-7. [API - Lịch sửa chữa](#7-api---lịch-sửa-chữa)
-8. [API - Tiến độ](#8-api---tiến-độ)
-9. [API - Tài nguyên đính kèm](#9-api---tài-nguyên-đính-kèm)
-10. [API - Đánh giá kết quả](#10-api---đánh-giá-kết-quả)
-11. [API - Lịch sử hoạt động](#11-api---lịch-sử-hoạt-động)
-12. [API - Thống kê](#12-api---thống-kê)
-13. [Luồng nghiệp vụ đầy đủ](#13-luồng-nghiệp-vụ-đầy-đủ)
-14. [Hướng dẫn FE theo role](#14-hướng-dẫn-fe-theo-role)
+1. [Tổng quan & Enums](#1-tổng-quan--enums)
+2. [maintenance-request](#2-maintenance-request)
+3. [maintenance-quotation](#3-maintenance-quotation)
+4. [maintenance-schedule](#4-maintenance-schedule)
+5. [maintenance-progress](#5-maintenance-progress)
+6. [maintenance-review](#6-maintenance-review)
+7. [maintenance-resource](#7-maintenance-resource)
+8. [maintenance-log](#8-maintenance-log)
+9. [maintenance-statistics](#9-maintenance-statistics)
+10. [Data Models](#10-data-models)
+11. [Luồng nghiệp vụ đầy đủ](#11-luồng-nghiệp-vụ-đầy-đủ)
 
 ---
 
-## 1. Tổng quan hệ thống
+## 1. Tổng quan & Enums
 
-### Vai trò (Role)
-
-| Role | Mô tả |
-|---|---|
-| `RESIDENT` | Cư dân — người gửi yêu cầu bảo trì |
-| `STAFF` | Nhân viên kỹ thuật — người thực hiện sửa chữa |
-| `MANAGER` | Quản lý tòa nhà — có toàn quyền |
-
-> ⚠️ **Lưu ý hiện tại:** Phân quyền chưa được implement — mọi API đang cho phép gọi tự do. Phân quyền sẽ được bổ sung sau.
-
-### Controller Structure
-
-| Controller | Base URL | Chức năng |
-|---|---|---|
-| `MaintenanceRequestController` | `/maintenance-requests` | CRUD yêu cầu, hủy, giao việc |
-| `MaintenanceWorkflowController` | `/maintenance-requests` | Sub-resources: báo giá (nested), lịch, tiến độ, đánh giá, tài nguyên, log |
-| `MaintenanceQuotationController` | `/maintenance-requests/quotations` | Thao tác trực tiếp theo quotationId |
-| `MaintenanceStatisticsController` | `/maintenance-requests` | Thống kê, workload, overdue |
-
-### Luồng trạng thái yêu cầu (RequestStatus)
-
-```
-PENDING ──────────────────────────────────────────────────► CANCELLED
-   │                                                         ▲
-   ▼                                                         │
-VERIFYING ──────────────────────────────────────────────────┤
-   │                                                         │
-   ▼                                                         │
-QUOTING (staff lập báo giá)                                  │
-   │                                                         │
-   ▼                                                         │
-WAITING_APPROVAL (đã gửi báo giá cho cư dân)               │
-   │                    │                                    │
-   ▼                    ▼                                    │
-APPROVED         QUOTING (cư dân từ chối → lập lại)        │
-   │                                                         │
-   ▼                                                         │
-IN_PROGRESS (đang thực hiện, sau khi xác nhận lịch)         │
-   │                    │                                    │
-   ▼                    ▼                                    │
-COMPLETED        IN_PROGRESS (cư dân yêu cầu làm lại)      │
-   │
-   ▼
-RESIDENT_ACCEPTED (nghiệm thu xong, đóng ticket)
-```
-
----
-
-## 2. Cấu trúc Response chung
-
-Tất cả API đều trả về cùng 1 wrapper `ApiResponse<T>`:
-
-### Thành công
+### Cấu trúc Response chung
 
 ```json
-{
-  "code": 200,
-  "message": null,
-  "result": { }
-}
+{ "code": 200, "message": null, "result": { } }
 ```
 
-### Lỗi
-
+Phân trang (`pagination=true`):
 ```json
-{
-  "code": 404,
-  "message": "Maintenance request not found",
-  "result": null
-}
+{ "code": 200, "result": { "currentPage": 1, "pageSize": 10, "totalPages": 5, "totalElements": 47, "data": [] } }
 ```
 
-### Có phân trang (`pagination=true`)
+### Enums
 
-```json
-{
-  "code": 200,
-  "message": null,
-  "result": {
-    "currentPage": 1,
-    "pageSize": 10,
-    "totalPages": 5,
-    "totalElements": 47,
-    "data": [ ]
-  }
-}
+#### RequestStatus — Trạng thái yêu cầu
+```
+PENDING → VERIFYING → QUOTING → WAITING_APPROVAL → APPROVED
+                                                        ↓
+                                                   IN_PROGRESS → COMPLETED → RESIDENT_ACCEPTED
+                                                        ↑ (REDO)
+                       ↓ (bất kỳ lúc nào)
+                    CANCELLED / REJECTED
 ```
 
-### Danh sách không phân trang (`pagination=false`)
+| Value | Ý nghĩa | Badge |
+|-------|---------|-------|
+| `PENDING` | Mới tạo, chờ xử lý | 🟡 |
+| `VERIFYING` | Đã giao staff, đang xác minh | 🔵 |
+| `QUOTING` | Staff đang lập báo giá | 🟠 |
+| `WAITING_APPROVAL` | Chờ cư dân duyệt báo giá | 🟣 |
+| `APPROVED` | Báo giá được duyệt | 🟢 |
+| `IN_PROGRESS` | Đang thực hiện | 🔵 |
+| `COMPLETED` | Hoàn thành, chờ nghiệm thu | 🟢 |
+| `RESIDENT_ACCEPTED` | Cư dân nghiệm thu xong | ✅ |
+| `CANCELLED` | Đã hủy | ⚫ |
 
-```json
-{
-  "code": 200,
-  "message": null,
-  "result": [ ]
-}
-```
-
----
-
-## 3. Enums & Giá trị hợp lệ
-
-### RequestStatus — Trạng thái yêu cầu
-
-| Giá trị | Ý nghĩa | Badge màu gợi ý |
-|---|---|---|
-| `PENDING` | Chờ xử lý (mới tạo) | 🟡 Vàng |
-| `VERIFYING` | Đang xác minh (đã giao cho staff) | 🔵 Xanh nhạt |
-| `QUOTING` | Staff đang lập báo giá | 🟠 Cam |
-| `WAITING_APPROVAL` | Chờ cư dân duyệt báo giá | 🟣 Tím |
-| `APPROVED` | Báo giá được duyệt, chờ xác nhận lịch | 🟢 Xanh nhạt |
-| `IN_PROGRESS` | Đang thực hiện sửa chữa | 🔵 Xanh đậm |
-| `COMPLETED` | Hoàn thành, chờ cư dân nghiệm thu | 🟢 Xanh |
-| `RESIDENT_ACCEPTED` | Cư dân nghiệm thu, đóng ticket | ✅ Xanh lá |
-| `CANCELLED` | Đã hủy | ⚫ Xám |
-
-### QuotationStatus — Trạng thái báo giá
-
-| Giá trị | Ý nghĩa |
-|---|---|
-| `DRAFT` | Bản nháp (staff đang soạn) |
-| `SENT` | Đã gửi cho cư dân, chờ phản hồi |
+#### QuotationStatus
+| Value | Ý nghĩa |
+|-------|---------|
+| `DRAFT` | Bản nháp |
+| `SENT` | Đã gửi cư dân |
 | `APPROVED` | Cư dân đồng ý |
 | `REJECTED` | Cư dân từ chối |
-| `CANCELLED` | Bị hủy |
-| `EXPIRED` | Hết hạn (vượt quá `validUntil`) |
+| `CANCELLED` | Đã hủy |
+| `EXPIRED` | Hết hạn (`validUntil`) |
 
-### ScheduleStatus — Trạng thái lịch sửa chữa
-
-| Giá trị | Ý nghĩa |
-|---|---|
+#### ScheduleStatus
+| Value | Ý nghĩa |
+|-------|---------|
 | `PROPOSED` | Đã đề xuất, chờ phản hồi |
-| `CONFIRMED` | Đã được chấp nhận |
+| `CONFIRMED` | Đã xác nhận |
 | `REJECTED` | Bị từ chối |
-| `CANCELLED` | Bị hủy |
-| `COUNTER_PROPOSED` | Đã bị đề xuất lại (bản gốc) |
+| `CANCELLED` | Đã hủy |
+| `COUNTER_PROPOSED` | Đã bị đề xuất lại |
 
-### ReviewOutcome — Kết quả nghiệm thu
+#### ReviewOutcome
+| Value | Tác động |
+|-------|---------|
+| `ACCEPTED` | `requestStatus → RESIDENT_ACCEPTED` |
+| `PARTIAL_ACCEPT` | `requestStatus → RESIDENT_ACCEPTED` |
+| `REDO` | `requestStatus → IN_PROGRESS` |
 
-| Giá trị | Ý nghĩa | Tác động |
-|---|---|---|
-| `ACCEPTED` | Đồng ý nghiệm thu | Status → `RESIDENT_ACCEPTED` |
-| `PARTIAL_ACCEPT` | Chấp nhận một phần | Status → `RESIDENT_ACCEPTED` |
-| `REDO` | Yêu cầu làm lại | Status → `IN_PROGRESS` |
-
-### RequestPriority — Độ ưu tiên
-
-| Giá trị | Badge màu gợi ý |
-|---|---|
-| `LOW` | 🟢 Xanh |
-| `NORMAL` | 🔵 Xanh dương |
-| `HIGH` | 🟠 Cam |
-| `CRITICAL` | 🔴 Đỏ |
-
-### RequestScope — Phạm vi
-
-| Giá trị | Ý nghĩa |
-|---|---|
-| `PRIVATE` | Trong căn hộ riêng |
-| `PUBLIC` | Khu vực chung tòa nhà |
-
-### MaintenanceCategory — Danh mục
-
-| Giá trị | Ý nghĩa |
-|---|---|
-| `MAINTENANCE` | Bảo trì định kỳ |
-| `REPAIR` | Sửa chữa |
-| `SERVICE` | Dịch vụ |
-| `CLEANING` | Vệ sinh |
-| `OTHER` | Khác |
-
-### ItemType — Loại hạng mục báo giá
-
-| Giá trị | Ý nghĩa |
-|---|---|
-| `MATERIAL` | Vật tư, nguyên liệu |
-| `LABOR` | Nhân công |
-| `OUTSOURCE` | Thuê ngoài |
-
-### ResourceType — Loại tài nguyên đính kèm
-
-| Giá trị | Ý nghĩa |
-|---|---|
-| `IMAGE` | Hình ảnh |
-| `VIDEO` | Video |
-| `DOCUMENT` | Tài liệu |
-| `OTHER` | Khác |
+#### Các enum khác
+- **RequestPriority:** `LOW` · `NORMAL` · `HIGH` · `CRITICAL`
+- **RequestScope:** `PRIVATE` (trong căn hộ) · `PUBLIC` (khu vực chung)
+- **MaintenanceCategory:** `MAINTENANCE` · `REPAIR` · `SERVICE` · `CLEANING` · `OTHER`
+- **ItemType:** `MATERIAL` · `LABOR` · `OUTSOURCE`
+- **ResourceType:** `IMAGE` · `VIDEO` · `DOCUMENT` · `OTHER`
+- **ScheduleProposedBy:** `RESIDENT` · `STAFF` · `MANAGER`
 
 ---
 
-## 4. Data Model (TypeScript Interface)
+## 2. maintenance-request
 
-### MaintenanceRequest
-
-```typescript
-interface MaintenanceRequest {
-  id: string;                 // UUID
-  code: string;               // "REQ-1740268800000" — mã hiển thị cho user
-  title: string;
-  description: string;
-  isBillable: boolean;        // true = tính phí cư dân
-
-  preferredTime: string | null;  // ISO 8601 — thời gian cư dân mong muốn
-  startedAt: string | null;      // thời gian bắt đầu thực tế (sau ACCEPT schedule)
-  finishedAt: string | null;     // thời gian hoàn thành (sau progress 100%)
-  closedAt: string | null;       // thời gian đóng (sau nghiệm thu)
-
-  scope: 'PRIVATE' | 'PUBLIC';
-  category: 'MAINTENANCE' | 'REPAIR' | 'SERVICE' | 'CLEANING' | 'OTHER';
-  requestStatus: string;         // RequestStatus enum
-  priority: 'LOW' | 'NORMAL' | 'HIGH' | 'CRITICAL';
-  paymentStatus: 'UNPAID' | 'PAID' | 'PARTIAL' | 'REFUNDED' | null;
-
-  requesterId: string | null;    // ID cư dân (null khi chưa có auth)
-  requesterName: string | null;
-
-  staffId: string | null;        // null = chưa được giao
-  staffName: string | null;
-
-  apartmentId: string | null;
-  apartmentCode: string | null;  // VD: "A1201"
-  buildingId: string | null;
-  buildingName: string | null;
-
-  createdAt: string;
-  updatedAt: string;
-}
-```
-
-**Lưu ý FE:**
-- `code` là mã hiển thị cho user (như mã ticket), dùng thay `id` trong UI.
-- `staffId = null` → hiển thị badge "Chưa có nhân viên".
-- `isBillable = false` → ẩn phần thanh toán.
-- `requesterId` và `staffId` hiện đang trả về `null` vì chưa có Authentication Context.
-
----
-
-### MaintenanceQuotation
-
-```typescript
-interface MaintenanceQuotation {
-  id: string;
-  code: string;               // "Q-1740269000000"
-  title: string;
-  status: string;             // QuotationStatus enum
-  description: string | null; // ghi chú của staff
-  note: string | null;        // ghi chú cho cư dân
-  totalAmount: number | null; // tổng tiền (hiện BE chưa tự tính)
-  validUntil: string | null;  // hạn báo giá
-  items: MaintenanceItem[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface MaintenanceItem {
-  id: string;
-  name: string;
-  description: string | null;
-  itemType: 'MATERIAL' | 'LABOR' | 'OUTSOURCE';
-  quantity: number;
-  unitPrice: number;          // đơn giá (VNĐ)
-  // totalPrice = quantity * unitPrice — FE tự tính
-}
-```
-
-**Lưu ý FE:**
-- `totalAmount` trả về `null` — FE tự tính: `items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0)`.
-- Một yêu cầu có thể có **nhiều báo giá** (khi cư dân từ chối). Hiển thị báo giá mới nhất có status `SENT` để cư dân phản hồi.
-
----
-
-### MaintenanceSchedule
-
-```typescript
-interface MaintenanceSchedule {
-  id: string;
-  maintenanceRequestId: string;
-  proposedTime: string;         // ISO 8601
-  estimatedDuration: number | null; // phút
-  note: string | null;
-  status: string;               // ScheduleStatus enum
-  proposedByRole: 'RESIDENT' | 'STAFF' | 'MANAGER';
-  proposedById: string | null;
-  proposedByName: string | null;
-  parentScheduleId: string | null; // ID lịch gốc nếu đây là counter-proposal
-  createdAt: string;
-  updatedAt: string;
-}
-```
-
-**Lưu ý FE:**
-- `parentScheduleId != null` → đây là lịch đề xuất lại (counter-proposal).
-- Khi hiển thị timeline đàm phán lịch: filter theo `parentScheduleId` để build cây phân cấp.
-
----
-
-### MaintenanceProgress
-
-```typescript
-interface MaintenanceProgress {
-  id: string;
-  maintenanceRequestId: string;
-  note: string;
-  progressPercent: number;    // 0 - 100
-  updatedById: string | null;
-  updatedByName: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-```
-
-**Lưu ý FE:**
-- Khi `progressPercent >= 100`, BE tự động chuyển request status → `COMPLETED`.
-- Hiển thị progress bar theo giá trị của entry mới nhất.
-
----
-
-### MaintenanceReview
-
-```typescript
-interface MaintenanceReview {
-  id: string;
-  maintenanceRequestId: string;
-  rating: number;              // 1 - 5 sao
-  comment: string | null;
-  outcome: 'ACCEPTED' | 'REDO' | 'PARTIAL_ACCEPT';
-  reviewedById: string | null;
-  reviewedByName: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-```
-
----
-
-### MaintenanceResource
-
-```typescript
-interface MaintenanceResource {
-  id: string;
-  name: string;
-  url: string;                 // URL ảnh/video/tài liệu
-  resourceType: 'IMAGE' | 'VIDEO' | 'DOCUMENT' | 'OTHER';
-}
-```
-
----
-
-### MaintenanceLog
-
-```typescript
-interface MaintenanceLog {
-  id: string;
-  action: string;
-  note: string;
-  actorId: string | null;     // null vì chưa có Authentication Context
-  createdAt: string;
-}
-```
-
-**Các giá trị `action`:**
-
-| Action | Khi nào |
-|---|---|
-| `CREATE_REQUEST` | Tạo yêu cầu |
-| `UPDATE_REQUEST` | Cập nhật yêu cầu |
-| `CANCEL_REQUEST` | Hủy yêu cầu |
-| `ASSIGN_REQUEST` | Giao cho nhân viên |
-| `CREATE_QUOTATION` | Tạo báo giá |
-| `UPDATE_QUOTATION` | Cập nhật báo giá |
-| `UPDATE_QUOTATION_STATUS` | Thay đổi trạng thái báo giá |
-| `ADD_RESOURCE` | Thêm tài nguyên đính kèm |
-| `PROPOSE_SCHEDULE` | Đề xuất lịch sửa chữa |
-| `CONFIRM_SCHEDULE` | Xác nhận lịch |
-| `REJECT_SCHEDULE` | Từ chối lịch |
-| `COUNTER_PROPOSE_SCHEDULE` | Đề xuất lại lịch |
-| `UPDATE_PROGRESS` | Cập nhật tiến độ |
-| `COMPLETE_REQUEST` | Hoàn thành sửa chữa (progress 100%) |
-| `RESIDENT_ACCEPTED` | Cư dân nghiệm thu |
-| `REDO_REQUESTED` | Cư dân yêu cầu làm lại |
-
----
-
-## 5. API - Yêu cầu bảo trì
-
-### 5.1 Tạo yêu cầu bảo trì
+### 2.1 maintenance-request/create
 
 ```
 POST /maintenance-requests
 ```
 
-**Request Body:**
+**Role được phép:** RESIDENT
 
+**Request Body:**
 ```json
 {
   "title": "Rò rỉ nước phòng bếp",
@@ -429,78 +114,66 @@ POST /maintenance-requests
   "scope": "PRIVATE",
   "category": "REPAIR",
   "priority": "HIGH",
-  "preferredTime": "2026-02-25T09:00:00",
+  "preferredTime": "2026-03-10T09:00:00",
   "isBillable": false,
   "apartmentId": "uuid-apartment",
   "buildingId": "uuid-building"
 }
 ```
 
-| Field | Kiểu | Bắt buộc | Mô tả |
-|---|---|:---:|---|
-| `title` | string | ✅ | Tiêu đề ngắn gọn |
-| `description` | string | ✅ | Mô tả chi tiết vấn đề |
-| `scope` | enum | | `PRIVATE` hoặc `PUBLIC` |
-| `category` | enum | | Loại bảo trì |
-| `priority` | enum | | Độ ưu tiên |
-| `preferredTime` | datetime | | Thời gian cư dân mong muốn |
-| `isBillable` | boolean | | `true` = tính phí cư dân |
-| `apartmentId` | UUID | | ID căn hộ |
-| `buildingId` | UUID | | ID tòa nhà |
+| Field | Bắt buộc | Ghi chú |
+|-------|:--------:|---------|
+| `title` | ✅ | |
+| `description` | ✅ | |
+| `scope` | | Mặc định `PRIVATE` |
+| `category`, `priority` | | |
+| `preferredTime` | | ISO 8601 |
+| `isBillable` | | `false` = miễn phí |
+| `apartmentId`, `buildingId` | | |
 
-**Tác động:** Tự sinh `code = "REQ-{timestamp}"`, `requestStatus = PENDING`.
-
-**Response `200 OK`:** Trả về `MaintenanceRequest`.
+**Kết quả:** `requestStatus = PENDING`, `code = "REQ-{timestamp}"`
 
 ---
 
-### 5.2 Danh sách yêu cầu
+### 2.2 maintenance-request/list
 
 ```
-GET /maintenance-requests
+GET /maintenance-requests?keyword=&page=1&size=10&pagination=true
 ```
 
-**Query Parameters:**
+**Role được phép:** ALL
 
-| Param | Kiểu | Mặc định | Mô tả |
-|---|---|---|---|
-| `keyword` | string | `""` | Tìm theo `title` hoặc `code` |
-| `page` | number | `1` | Trang hiện tại (bắt đầu từ 1) |
-| `size` | number | `10` | Số item mỗi trang |
-| `pagination` | boolean | `true` | `false` = lấy toàn bộ |
+| Param | Mặc định | Ghi chú |
+|-------|---------|---------|
+| `keyword` | `""` | Tìm theo `title`, `code` |
+| `page` | `1` | |
+| `size` | `10` | |
+| `pagination` | `true` | `false` = lấy toàn bộ |
 
-**Ví dụ:**
-
-```
-GET /maintenance-requests?keyword=rò rỉ&page=1&size=10
-GET /maintenance-requests?pagination=false
-```
+> **FE lưu ý:** Backend chưa filter theo role. FE tự filter: resident → `requesterId`, staff → `staffId`.
 
 ---
 
-### 5.3 Chi tiết yêu cầu
+### 2.3 maintenance-request/get
 
 ```
 GET /maintenance-requests/{id}
 ```
 
-**Response `200 OK`:** Trả về `MaintenanceRequest`.
-
-**Response `404`:**
-```json
-{ "code": 404, "message": "Maintenance request not found", "result": null }
-```
+**Role được phép:** ALL
 
 ---
 
-### 5.4 Cập nhật yêu cầu
+### 2.4 maintenance-request/update
 
 ```
 PUT /maintenance-requests/{id}
 ```
 
-**Request Body** (tất cả field đều optional):
+**Role được phép:** RESIDENT  
+**Điều kiện:** `requestStatus = PENDING`
 
+**Request Body** (tất cả optional):
 ```json
 {
   "title": "Tiêu đề mới",
@@ -508,709 +181,626 @@ PUT /maintenance-requests/{id}
   "scope": "PRIVATE",
   "category": "REPAIR",
   "priority": "CRITICAL",
-  "preferredTime": "2026-02-26T08:00:00",
-  "isBillable": true,
-  "status": "IN_PROGRESS",
-  "paymentStatus": "UNPAID",
-  "staffId": "uuid-staff"
+  "preferredTime": "2026-03-11T08:00:00"
 }
 ```
 
-> **Lưu ý:** `staffId` ở đây cập nhật trực tiếp — để **giao việc đúng chuẩn** nên dùng endpoint `PATCH /{id}/assign` thay thế.
-
-**Response `200 OK`:** Trả về `MaintenanceRequest` đã cập nhật.
-
 ---
 
-### 5.5 Hủy yêu cầu
+### 2.5 maintenance-request/cancel
 
 ```
 PATCH /maintenance-requests/{id}/cancel
 ```
 
-**Request Body** (không bắt buộc):
+**Role được phép:** RESIDENT, ADMIN  
+**Điều kiện:** `requestStatus ∈ {PENDING, VERIFYING}`
 
+**Request Body** (optional):
 ```json
-{
-  "reason": "Tôi tự sửa được rồi"
-}
+{ "reason": "Tôi tự sửa được rồi" }
 ```
 
-**Tác động:** `requestStatus → CANCELLED`, `closedAt = now()`.
-
-**Response `200 OK`:** Trả về `MaintenanceRequest`.
+**Kết quả:** `requestStatus → CANCELLED`, `closedAt = now()`
 
 ---
 
-### 5.6 Giao yêu cầu cho nhân viên
+### 2.6 maintenance-request/assign
 
 ```
 PATCH /maintenance-requests/{id}/assign
 ```
 
-**Request Body:**
+**Role được phép:** ADMIN  
+**Điều kiện:** `requestStatus ∈ {PENDING, VERIFYING}`
 
+**Request Body:**
 ```json
-{
-  "staffId": "uuid-staff"
-}
+{ "staffId": "uuid-staff" }
 ```
 
-**Tác động:** Gán staff, `requestStatus → VERIFYING`.
-
-**Response `200 OK`:** Trả về `MaintenanceRequest`.
+**Kết quả:** Gán `staffId`, `requestStatus → VERIFYING`
 
 ---
 
-## 6. API - Báo giá
+## 3. maintenance-quotation
 
-### 6.1 Tạo báo giá
+### 3.1 maintenance-quotation/create
 
 ```
 POST /maintenance-requests/{id}/quotations
 ```
 
-**Request Body:**
+**Role được phép:** STAFF  
+**Điều kiện:** `requestStatus ∈ {VERIFYING, QUOTING}`
 
+**Request Body:**
 ```json
 {
   "title": "Báo giá thay ống nước",
-  "description": "Cần thay toàn bộ đường ống PVC",
+  "description": "Ghi chú nội bộ của staff",
   "note": "Lưu ý dành cho cư dân",
-  "validUntil": "2026-03-01T17:00:00",
+  "validUntil": "2026-03-15T17:00:00",
   "items": [
-    {
-      "name": "Ống nhựa PVC 21mm",
-      "description": "Loại A, nhập khẩu",
-      "itemType": "MATERIAL",
-      "quantity": 5,
-      "unitPrice": 35000
-    },
-    {
-      "name": "Công thợ lắp đặt",
-      "itemType": "LABOR",
-      "quantity": 2,
-      "unitPrice": 150000
-    }
+    { "name": "Ống nhựa PVC 21mm", "itemType": "MATERIAL", "quantity": 5, "unitPrice": 35000 },
+    { "name": "Công thợ lắp đặt",   "itemType": "LABOR",    "quantity": 2, "unitPrice": 150000 }
   ]
 }
 ```
 
-**Tác động:** Tạo báo giá với `status = DRAFT`, `requestStatus → QUOTING`.
+**Kết quả:** `quotationStatus = DRAFT`, `requestStatus → QUOTING`
 
-**Response `200 OK`:** Trả về `MaintenanceQuotation` (với `items`).
+> `totalAmount` BE không tự tính — FE tính: `items.reduce((s,i) => s + i.quantity * i.unitPrice, 0)`
 
 ---
 
-### 6.2 Danh sách báo giá của yêu cầu
+### 3.2 maintenance-quotation/list
 
 ```
 GET /maintenance-requests/{id}/quotations
 ```
 
-**Response `200 OK`:** Trả về `MaintenanceQuotation[]`.
+**Role được phép:** ALL  
+**Ghi chú:** Trả về tất cả báo giá. FE hiển thị nổi bật báo giá có `status = SENT`.
 
 ---
 
-### 6.3 Chi tiết báo giá
+### 3.3 maintenance-quotation/get
 
 ```
 GET /maintenance-requests/quotations/{quotationId}
 ```
 
-**Response `200 OK`:** Trả về `MaintenanceQuotation`.
+**Role được phép:** ALL
 
 ---
 
-### 6.4 Cập nhật báo giá
+### 3.4 maintenance-quotation/update
 
 ```
 PUT /maintenance-requests/quotations/{quotationId}
 ```
 
-> Chỉ cập nhật được khi `status = DRAFT`.
+**Role được phép:** STAFF  
+**Điều kiện:** `quotationStatus = DRAFT`
 
-**Request Body** (tương tự tạo, tất cả optional):
-
+**Request Body** (giống create, tất cả optional):
 ```json
 {
-  "title": "Báo giá thay ống nước (cập nhật)",
-  "validUntil": "2026-03-05T17:00:00",
+  "title": "Báo giá cập nhật",
   "items": [
-    {
-      "name": "Ống nhựa PVC 27mm",
-      "itemType": "MATERIAL",
-      "quantity": 5,
-      "unitPrice": 45000
-    }
+    { "name": "Ống PVC 27mm", "itemType": "MATERIAL", "quantity": 5, "unitPrice": 45000 }
   ]
 }
 ```
 
-> Khi `items` được gửi lên, toàn bộ items cũ sẽ bị **xóa và thay thế** bằng items mới.
-
-**Response `200 OK`:** Trả về `MaintenanceQuotation`.
+> Khi gửi `items` → toàn bộ items cũ bị **xóa và thay thế**.
 
 ---
 
-### 6.5 Cập nhật trạng thái báo giá
+### 3.5 maintenance-quotation/send
 
 ```
-PATCH /maintenance-requests/quotations/{quotationId}/status?status={QuotationStatus}
+PATCH /maintenance-requests/quotations/{quotationId}/status?status=SENT
 ```
 
-**Luồng trạng thái:**
-
-```
-DRAFT ──[STAFF]──► SENT ──[RESIDENT]──► APPROVED
-                      │
-                      └──[RESIDENT]──► REJECTED
-```
-
-**Tác động kèm theo:**
-
-| Chuyển | Tác động lên Request |
-|---|---|
-| `DRAFT → SENT` | `requestStatus → WAITING_APPROVAL` |
-| `SENT → APPROVED` | `requestStatus → APPROVED` |
-| `SENT → REJECTED` | `requestStatus → QUOTING` (staff lập báo giá mới) |
-
-**Response `200 OK`:** Trả về `MaintenanceQuotation`.
+**Role được phép:** STAFF  
+**Điều kiện:** `quotationStatus = DRAFT`  
+**Kết quả:** `quotationStatus → SENT`, `requestStatus → WAITING_APPROVAL`
 
 ---
 
-## 7. API - Lịch sửa chữa
+### 3.6 maintenance-quotation/approve
 
-### 7.1 Đề xuất lịch sửa chữa
+```
+PATCH /maintenance-requests/quotations/{quotationId}/status?status=APPROVED
+```
+
+**Role được phép:** RESIDENT  
+**Điều kiện:** `quotationStatus = SENT`  
+**Kết quả:** `quotationStatus → APPROVED`, `requestStatus → APPROVED`
+
+---
+
+### 3.7 maintenance-quotation/reject
+
+```
+PATCH /maintenance-requests/quotations/{quotationId}/status?status=REJECTED
+```
+
+**Role được phép:** RESIDENT  
+**Điều kiện:** `quotationStatus = SENT`  
+**Kết quả:** `quotationStatus → REJECTED`, `requestStatus → QUOTING` (staff lập báo giá mới)
+
+---
+
+### 3.8 maintenance-quotation/cancel
+
+```
+PATCH /maintenance-requests/quotations/{quotationId}/status?status=CANCELLED
+```
+
+**Role được phép:** ADMIN
+
+---
+
+## 4. maintenance-schedule
+
+### 4.1 maintenance-schedule/propose
 
 ```
 POST /maintenance-requests/{id}/schedules
 ```
 
-**Request Body:**
+**Role được phép:** RESIDENT, STAFF, ADMIN  
+**Điều kiện:** `requestStatus ∈ {APPROVED, IN_PROGRESS}`
 
+**Request Body:**
 ```json
 {
-  "proposedTime": "2026-02-28T08:00:00",
+  "proposedTime": "2026-03-12T08:00:00",
   "estimatedDuration": 120,
-  "note": "Buổi sáng trước 11h, tôi ở nhà"
+  "note": "Buổi sáng trước 11h"
 }
 ```
 
-| Field | Kiểu | Bắt buộc | Mô tả |
-|---|---|:---:|---|
-| `proposedTime` | datetime | ✅ | Thời gian đề xuất |
-| `estimatedDuration` | number | | Thời lượng ước tính (phút) |
-| `note` | string | | Ghi chú thêm |
-
-**Tác động:** Tạo schedule với `status = PROPOSED`, `proposedByRole = RESIDENT`.
-
-**Response `200 OK`:** Trả về `MaintenanceSchedule`.
+**Kết quả:** `scheduleStatus = PROPOSED`, `proposedByRole` tự động theo người gọi
 
 ---
 
-### 7.2 Danh sách lịch của yêu cầu
+### 4.2 maintenance-schedule/list
 
 ```
 GET /maintenance-requests/{id}/schedules
 ```
 
-**Response `200 OK`:** Trả về `MaintenanceSchedule[]` (sắp xếp theo `createdAt` tăng dần).
+**Role được phép:** ALL  
+**Ghi chú:** Trả về toàn bộ lịch sử đề xuất (kể cả counter-proposals). Dùng `parentScheduleId` để build cây.
 
 ---
 
-### 7.3 Phản hồi lịch đề xuất
+### 4.3 maintenance-schedule/accept
 
 ```
 PATCH /maintenance-requests/{id}/schedules/{scheduleId}/respond
 ```
 
-**Request Body — Chấp nhận:**
+**Role được phép:** Bên **không** đề xuất schedule đó  
+**Điều kiện:** `scheduleStatus = PROPOSED`
 
+**Body:**
 ```json
-{
-  "action": "ACCEPT",
-  "note": "OK, tôi sẽ đến đúng giờ"
-}
+{ "action": "ACCEPT", "note": "OK, tôi sẽ có mặt" }
 ```
 
-**Request Body — Từ chối:**
-
-```json
-{
-  "action": "REJECT",
-  "note": "Ngày này tôi bận, vui lòng đổi ngày khác"
-}
-```
-
-**Request Body — Đề xuất lại (Counter-propose):**
-
-```json
-{
-  "action": "COUNTER_PROPOSE",
-  "counterProposedTime": "2026-02-28T14:00:00",
-  "counterEstimatedDuration": 90,
-  "note": "Buổi sáng tôi có lịch khác, chiều 2h được không?"
-}
-```
-
-| Field | Bắt buộc khi | Mô tả |
-|---|---|---|
-| `action` | ✅ | `ACCEPT`, `REJECT`, hoặc `COUNTER_PROPOSE` |
-| `note` | | Ghi chú |
-| `counterProposedTime` | `COUNTER_PROPOSE` | Thời gian đề xuất lại |
-| `counterEstimatedDuration` | | Thời lượng (phút) |
-
-**Tác động:**
-
-| Action | Tác động |
-|---|---|
-| `ACCEPT` | Schedule → `CONFIRMED`, `requestStatus → IN_PROGRESS`, `startedAt = proposedTime` |
-| `REJECT` | Schedule → `REJECTED` |
-| `COUNTER_PROPOSE` | Schedule gốc → `COUNTER_PROPOSED`, tạo schedule mới với `proposedByRole = STAFF`, `parentScheduleId` trỏ về schedule gốc |
-
-**Response `200 OK`:** Trả về `MaintenanceSchedule` (schedule mới nếu là COUNTER_PROPOSE).
+**Kết quả:** `scheduleStatus → CONFIRMED`, `requestStatus → IN_PROGRESS`, `startedAt = proposedTime`
 
 ---
 
-## 8. API - Tiến độ
+### 4.4 maintenance-schedule/reject
 
-### 8.1 Cập nhật tiến độ
+```
+PATCH /maintenance-requests/{id}/schedules/{scheduleId}/respond
+```
+
+**Body:**
+```json
+{ "action": "REJECT", "note": "Hôm đó tôi bận" }
+```
+
+**Kết quả:** `scheduleStatus → REJECTED`
+
+---
+
+### 4.5 maintenance-schedule/counter
+
+```
+PATCH /maintenance-requests/{id}/schedules/{scheduleId}/respond
+```
+
+**Body:**
+```json
+{
+  "action": "COUNTER_PROPOSE",
+  "counterProposedTime": "2026-03-12T14:00:00",
+  "counterEstimatedDuration": 90,
+  "note": "Chiều 2h được không?"
+}
+```
+
+**Kết quả:** Schedule gốc → `COUNTER_PROPOSED`. Tạo record mới với `parentScheduleId = scheduleId`.
+
+> **Quy tắc respond:**  
+> - `proposedByRole = RESIDENT` → STAFF phải phản hồi  
+> - `proposedByRole = STAFF` hoặc `MANAGER` → RESIDENT phải phản hồi
+
+---
+
+## 5. maintenance-progress
+
+### 5.1 maintenance-progress/add
 
 ```
 POST /maintenance-requests/{id}/progress
 ```
 
-**Request Body:**
+**Role được phép:** STAFF  
+**Điều kiện:** `requestStatus = IN_PROGRESS`
 
+**Request Body:**
 ```json
 {
-  "note": "Đã tháo xong ống cũ, đang chờ vật tư về",
-  "progressPercent": 40
+  "note": "Đã tháo ống cũ, đang lắp ống mới",
+  "progressPercent": 60
 }
 ```
 
-| Field | Kiểu | Bắt buộc | Mô tả |
-|---|---|:---:|---|
-| `note` | string | ✅ | Mô tả tiến độ |
-| `progressPercent` | number (0-100) | | % hoàn thành |
-
-**Tác động:** Nếu `progressPercent >= 100` → `requestStatus → COMPLETED`, `finishedAt = now()`.
-
-**Response `200 OK`:** Trả về `MaintenanceProgress`.
+> ⚠️ **Tự động:** `progressPercent >= 100` → `requestStatus → COMPLETED`, `finishedAt = now()`
 
 ---
 
-### 8.2 Lịch sử tiến độ
+### 5.2 maintenance-progress/list
 
 ```
 GET /maintenance-requests/{id}/progress
 ```
 
-**Response `200 OK`:** Trả về `MaintenanceProgress[]` (sắp xếp theo `createdAt` tăng dần).
+**Role được phép:** ALL  
+**Ghi chú:** Sắp xếp `createdAt` giảm dần — phần tử `[0]` là mới nhất → dùng cho progress bar.
 
 ---
 
-## 9. API - Tài nguyên đính kèm
+## 6. maintenance-review
 
-### 9.1 Thêm tài nguyên
-
-```
-POST /maintenance-requests/{id}/resources
-```
-
-**Request Body:**
-
-```json
-{
-  "name": "Ảnh chỗ bị rò nước",
-  "url": "https://storage.example.com/images/leak-photo.jpg",
-  "resourceType": "IMAGE"
-}
-```
-
-| Field | Kiểu | Bắt buộc | Mô tả |
-|---|---|:---:|---|
-| `name` | string | ✅ | Tên mô tả file |
-| `url` | string | ✅ | URL đầy đủ (upload lên storage trước) |
-| `resourceType` | enum | | `IMAGE` / `VIDEO` / `DOCUMENT` / `OTHER` |
-
-> **Lưu ý FE:** API nhận `url`, không nhận file trực tiếp. FE cần upload lên cloud storage (S3, Firebase, Cloudinary,...) trước, lấy URL rồi mới gọi API này.
-
-**Response `200 OK`:** Trả về `MaintenanceResource`.
-
----
-
-### 9.2 Danh sách tài nguyên
-
-```
-GET /maintenance-requests/{id}/resources
-```
-
-**Response `200 OK`:** Trả về `MaintenanceResource[]`.
-
----
-
-## 10. API - Đánh giá kết quả
-
-> Chỉ có thể gửi đánh giá khi `requestStatus = COMPLETED`. Mỗi yêu cầu chỉ được đánh giá **một lần**.
-
-### 10.1 Gửi đánh giá
+### 6.1 maintenance-review/submit
 
 ```
 POST /maintenance-requests/{id}/review
 ```
 
-**Request Body:**
+**Role được phép:** RESIDENT  
+**Điều kiện:** `requestStatus = COMPLETED`  
+**Giới hạn:** Mỗi YC chỉ được đánh giá **1 lần**.
 
+**Request Body:**
 ```json
 {
   "rating": 4,
-  "comment": "Làm nhanh, gọn, nhưng còn vết bẩn trên tường",
-  "outcome": "ACCEPTED"
+  "outcome": "ACCEPTED",
+  "comment": "Làm nhanh, sạch sẽ, nhưng còn vết bẩn trên tường"
 }
 ```
 
-| Field | Kiểu | Bắt buộc | Mô tả |
-|---|---|:---:|---|
-| `rating` | number (1-5) | ✅ | Số sao |
-| `comment` | string | | Nhận xét |
-| `outcome` | enum | ✅ | `ACCEPTED`, `REDO`, `PARTIAL_ACCEPT` |
+| Field | Bắt buộc | Ghi chú |
+|-------|:--------:|---------|
+| `rating` | ✅ | 1–5 sao |
+| `outcome` | ✅ | `ACCEPTED` / `PARTIAL_ACCEPT` / `REDO` |
+| `comment` | | |
 
-**Tác động theo `outcome`:**
-
-| Outcome | Tác động |
-|---|---|
-| `ACCEPTED` | `requestStatus → RESIDENT_ACCEPTED`, `finishedAt = now()`, `closedAt = now()` |
-| `PARTIAL_ACCEPT` | `requestStatus → RESIDENT_ACCEPTED`, `finishedAt = now()`, `closedAt = now()` |
-| `REDO` | `requestStatus → IN_PROGRESS` (quay lại thực hiện) |
-
-**Response `200 OK`:** Trả về `MaintenanceReview`.
+**Kết quả:**
+| outcome | requestStatus |
+|---------|--------------|
+| `ACCEPTED` | `→ RESIDENT_ACCEPTED`, `closedAt = now()` |
+| `PARTIAL_ACCEPT` | `→ RESIDENT_ACCEPTED`, `closedAt = now()` |
+| `REDO` | `→ IN_PROGRESS` (quay lại thực hiện) |
 
 ---
 
-### 10.2 Xem đánh giá
+### 6.2 maintenance-review/get
 
 ```
 GET /maintenance-requests/{id}/review
 ```
 
-**Response `200 OK`:** Trả về `MaintenanceReview`.
-
-**Response `404`:** Nếu chưa có đánh giá.
+**Role được phép:** ALL  
+**Lưu ý:** Trả về `404` nếu chưa có đánh giá.
 
 ---
 
-## 11. API - Lịch sử hoạt động
+## 7. maintenance-resource
+
+### 7.1 maintenance-resource/add
+
+```
+POST /maintenance-requests/{id}/resources
+```
+
+**Role được phép:** RESIDENT, STAFF
+
+| Role | Thời điểm | Mục đích |
+|------|-----------|---------|
+| RESIDENT | Khi `PENDING` | Ảnh mô tả vấn đề |
+| STAFF | Khi `IN_PROGRESS` | Ảnh tiến độ / kết quả |
+
+**Request Body:**
+```json
+{
+  "name": "Ảnh rò nước dưới bồn",
+  "url": "https://storage.example.com/images/leak.jpg",
+  "resourceType": "IMAGE"
+}
+```
+
+> **Lưu ý:** API nhận `url` không nhận file trực tiếp. FE upload lên cloud storage (S3/Firebase...) trước → lấy URL → mới gọi API.
+
+---
+
+### 7.2 maintenance-resource/list
+
+```
+GET /maintenance-requests/{id}/resources
+```
+
+**Role được phép:** ALL
+
+---
+
+## 8. maintenance-log
+
+### 8.1 maintenance-log/list
 
 ```
 GET /maintenance-requests/{id}/logs
 ```
 
-**Response `200 OK`:** Trả về `MaintenanceLog[]` (sắp xếp theo `createdAt` tăng dần).
+**Role được phép:** ALL (chỉ đọc — log được ghi tự động bởi hệ thống)
 
+**Response mẫu:**
 ```json
 {
   "code": 200,
   "result": [
-    {
-      "id": "uuid-1",
-      "action": "CREATE_REQUEST",
-      "note": "Tao yeu cau bao tri: Rò rỉ nước phòng bếp",
-      "actorId": null,
-      "createdAt": "2026-02-23T10:00:00"
-    },
-    {
-      "id": "uuid-2",
-      "action": "ASSIGN_REQUEST",
-      "note": "Giao cho nhan vien: Nguyễn Văn A",
-      "actorId": null,
-      "createdAt": "2026-02-23T10:15:00"
-    }
+    { "id": "uuid-1", "action": "CREATE_REQUEST",  "note": "Tạo YC: Rò nước bếp", "actorId": null, "createdAt": "2026-03-06T10:00:00" },
+    { "id": "uuid-2", "action": "ASSIGN_REQUEST",  "note": "Giao cho: Nguyễn Văn A", "actorId": null, "createdAt": "2026-03-06T10:15:00" },
+    { "id": "uuid-3", "action": "UPDATE_PROGRESS", "note": "Tiến độ 60%", "actorId": null, "createdAt": "2026-03-06T14:00:00" }
   ]
 }
 ```
 
-> **Lưu ý FE:** `actorId = null` vì chưa có Authentication Context. Hiển thị timeline từ cũ → mới theo `createdAt`.
+> `actorId = null` — Authentication Context chưa được implement.
+
+**Các giá trị `action`:**
+
+| Action | Khi nào |
+|--------|---------|
+| `CREATE_REQUEST` | Tạo YC |
+| `UPDATE_REQUEST` | Sửa YC |
+| `CANCEL_REQUEST` | Hủy YC |
+| `ASSIGN_REQUEST` | Giao nhân viên |
+| `CREATE_QUOTATION` | Tạo báo giá |
+| `UPDATE_QUOTATION` | Sửa báo giá |
+| `UPDATE_QUOTATION_STATUS` | Thay đổi trạng thái BG |
+| `ADD_RESOURCE` | Thêm file đính kèm |
+| `PROPOSE_SCHEDULE` | Đề xuất lịch |
+| `CONFIRM_SCHEDULE` | Xác nhận lịch |
+| `REJECT_SCHEDULE` | Từ chối lịch |
+| `COUNTER_PROPOSE_SCHEDULE` | Đề xuất lại lịch |
+| `UPDATE_PROGRESS` | Cập nhật tiến độ |
+| `COMPLETE_REQUEST` | Hoàn thành (progress 100%) |
+| `RESIDENT_ACCEPTED` | Cư dân nghiệm thu |
+| `REDO_REQUESTED` | YC làm lại |
 
 ---
 
-## 12. API - Thống kê
+## 9. maintenance-statistics
 
-### 12.1 Thống kê tổng quan
+> **Role được phép:** ADMIN
+
+### 9.1 maintenance-statistics/overview
 
 ```
-GET /maintenance-requests/statistics?from=2026-01-01&to=2026-02-28&buildingId=uuid
+GET /maintenance-requests/statistics?from=2026-01-01&to=2026-03-06&buildingId=uuid
 ```
 
-**Query Parameters:**
-
-| Param | Bắt buộc | Mô tả |
-|---|---|---|
-| `from` | | Ngày bắt đầu lọc (format: `yyyy-MM-dd`) |
-| `to` | | Ngày kết thúc lọc (format: `yyyy-MM-dd`) |
-| `buildingId` | | Lọc theo tòa nhà |
-
-**Response `200 OK`:**
-
+**Response:**
 ```json
 {
-  "code": 200,
-  "result": {
-    "totalRequests": 120,
-    "pendingCount": 5,
-    "inProgressCount": 12,
-    "completedCount": 90,
-    "cancelledCount": 13,
-    "overdueCount": 3,
-    "avgResolutionDays": 3.5,
-    "avgRating": 4.2,
-    "byStatus": {
-      "PENDING": 5,
-      "IN_PROGRESS": 12,
-      "RESIDENT_ACCEPTED": 90,
-      "CANCELLED": 13
-    },
-    "byCategory": {
-      "REPAIR": 60,
-      "MAINTENANCE": 30,
-      "CLEANING": 30
-    },
-    "byPriority": {
-      "HIGH": 45,
-      "NORMAL": 60,
-      "LOW": 15
-    }
-  }
+  "totalRequests": 120,
+  "byStatus": { "PENDING": 5, "IN_PROGRESS": 12, "RESIDENT_ACCEPTED": 90, "CANCELLED": 13 },
+  "byCategory": { "REPAIR": 60, "MAINTENANCE": 30, "CLEANING": 30 },
+  "byPriority": { "HIGH": 45, "NORMAL": 60, "LOW": 15 },
+  "avgRating": 4.2,
+  "avgResolutionDays": 3.5,
+  "overdueCount": 3
 }
 ```
 
 ---
 
-### 12.2 Khối lượng công việc của nhân viên
+### 9.2 maintenance-statistics/staff-workload
 
 ```
 GET /maintenance-requests/staff-workload
 ```
 
-**Response `200 OK`:** Trả về array `StaffWorkload[]`.
-
+**Response:**
 ```json
-{
-  "code": 200,
-  "result": [
-    {
-      "staffId": "uuid-staff-1",
-      "staffName": "Nguyễn Văn A",
-      "totalAssigned": 15,
-      "inProgress": 3,
-      "completed": 11,
-      "cancelled": 1,
-      "avgRating": 4.5,
-      "overdueCount": 0
-    }
-  ]
-}
+[
+  { "staffId": "uuid", "staffName": "Nguyễn Văn A", "totalAssigned": 15, "inProgress": 3, "completed": 11, "cancelled": 1, "avgRating": 4.5, "overdueCount": 0 }
+]
 ```
 
 ---
 
-### 12.3 Yêu cầu quá hạn
+### 9.3 maintenance-statistics/overdue
 
 ```
 GET /maintenance-requests/overdue
 ```
 
-Trả về danh sách yêu cầu `IN_PROGRESS` đã bắt đầu hơn **7 ngày** mà chưa hoàn thành.
-
-**Response `200 OK`:** Trả về `MaintenanceRequest[]`.
+Trả về `MaintenanceRequest[]` đang `IN_PROGRESS` mà `startedAt` > 7 ngày trước.
 
 ---
 
-## 13. Luồng nghiệp vụ đầy đủ
+## 10. Data Models
+
+### MaintenanceRequest
+```typescript
+interface MaintenanceRequest {
+  id: string; code: string; title: string; description: string;
+  isBillable: boolean;
+  preferredTime: string | null; startedAt: string | null;
+  finishedAt: string | null; closedAt: string | null;
+  scope: 'PRIVATE' | 'PUBLIC';
+  category: 'MAINTENANCE' | 'REPAIR' | 'SERVICE' | 'CLEANING' | 'OTHER';
+  requestStatus: string; priority: string; paymentStatus: string | null;
+  requesterId: string | null; requesterName: string | null;
+  staffId: string | null; staffName: string | null;
+  apartmentId: string | null; apartmentCode: string | null;
+  buildingId: string | null; buildingName: string | null;
+  createdAt: string; updatedAt: string;
+}
+```
+
+### MaintenanceQuotation + Item
+```typescript
+interface MaintenanceQuotation {
+  id: string; code: string; title: string; status: string;
+  description: string | null; // ghi chú staff
+  note: string | null;        // ghi chú cư dân
+  totalAmount: number | null; // null — FE tự tính
+  validUntil: string | null;
+  items: MaintenanceItem[];
+  createdAt: string; updatedAt: string;
+}
+interface MaintenanceItem {
+  id: string; name: string; description: string | null;
+  itemType: 'MATERIAL' | 'LABOR' | 'OUTSOURCE';
+  quantity: number; unitPrice: number;
+}
+```
+
+### MaintenanceSchedule
+```typescript
+interface MaintenanceSchedule {
+  id: string; proposedTime: string; estimatedDuration: number | null;
+  note: string | null; status: string;
+  proposedByRole: 'RESIDENT' | 'STAFF' | 'MANAGER';
+  proposedById: string | null; proposedByName: string | null;
+  parentScheduleId: string | null; // null nếu không phải counter-proposal
+  createdAt: string; updatedAt: string;
+}
+```
+
+### MaintenanceProgress
+```typescript
+interface MaintenanceProgress {
+  id: string; note: string; progressPercent: number; // 0-100
+  updatedById: string | null; updatedByName: string | null;
+  createdAt: string;
+}
+```
+
+### MaintenanceReview
+```typescript
+interface MaintenanceReview {
+  id: string; rating: number; // 1-5
+  comment: string | null;
+  outcome: 'ACCEPTED' | 'REDO' | 'PARTIAL_ACCEPT';
+  reviewedById: string | null; reviewedByName: string | null;
+  createdAt: string;
+}
+```
+
+### MaintenanceResource
+```typescript
+interface MaintenanceResource {
+  id: string; name: string; url: string;
+  resourceType: 'IMAGE' | 'VIDEO' | 'DOCUMENT' | 'OTHER';
+}
+```
+
+---
+
+## 11. Luồng nghiệp vụ đầy đủ
 
 ### Happy Path
 
 ```
-Bước 1: RESIDENT tạo yêu cầu
-  POST /maintenance-requests
-  → requestStatus: PENDING
-
-Bước 2: MANAGER giao cho STAFF
-  PATCH /maintenance-requests/{id}/assign  { staffId }
-  → requestStatus: VERIFYING
-
-Bước 3: STAFF lập báo giá
-  POST /maintenance-requests/{id}/quotations  { title, items... }
-  → quotationStatus: DRAFT, requestStatus: QUOTING
-
-Bước 4: STAFF gửi báo giá cho cư dân
-  PATCH /maintenance-requests/quotations/{qId}/status?status=SENT
-  → quotationStatus: SENT, requestStatus: WAITING_APPROVAL
-
-Bước 5: RESIDENT duyệt báo giá
-  PATCH /maintenance-requests/quotations/{qId}/status?status=APPROVED
-  → quotationStatus: APPROVED, requestStatus: APPROVED
-
-Bước 6: RESIDENT đề xuất lịch sửa chữa
-  POST /maintenance-requests/{id}/schedules  { proposedTime, estimatedDuration }
-  → scheduleStatus: PROPOSED
-
-Bước 7: STAFF xác nhận lịch
-  PATCH /maintenance-requests/{id}/schedules/{sId}/respond  { action: "ACCEPT" }
-  → scheduleStatus: CONFIRMED, requestStatus: IN_PROGRESS, startedAt được set
-
-Bước 8: STAFF cập nhật tiến độ (có thể nhiều lần)
-  POST /maintenance-requests/{id}/progress  { note, progressPercent: 50 }
-  POST /maintenance-requests/{id}/resources  { url, resourceType: "IMAGE" }
-
-Bước 9: STAFF hoàn thành sửa chữa
-  POST /maintenance-requests/{id}/progress  { note: "Xong", progressPercent: 100 }
-  → requestStatus: COMPLETED (tự động), finishedAt được set
-  POST /maintenance-requests/{id}/resources  { url ảnh kết quả }
-
-Bước 10: RESIDENT nghiệm thu
-  POST /maintenance-requests/{id}/review  { rating: 5, outcome: "ACCEPTED" }
-  → requestStatus: RESIDENT_ACCEPTED, closedAt được set
+[RESIDENT] maintenance-request/create          → PENDING
+[ADMIN]    maintenance-request/assign           → VERIFYING
+[STAFF]    maintenance-quotation/create         → QUOTING (DRAFT)
+[STAFF]    maintenance-quotation/send           → WAITING_APPROVAL
+[RESIDENT] maintenance-quotation/approve        → APPROVED
+[RESIDENT] maintenance-schedule/propose         → PROPOSED
+[STAFF]    maintenance-schedule/accept          → IN_PROGRESS
+[STAFF]    maintenance-progress/add (×n)        → cập nhật tiến độ
+[STAFF]    maintenance-resource/add (×n)        → ảnh tiến độ
+[STAFF]    maintenance-progress/add (100%)      → COMPLETED (tự động)
+[RESIDENT] maintenance-review/submit (ACCEPTED) → RESIDENT_ACCEPTED ✅
 ```
-
----
 
 ### Luồng phụ — Cư dân từ chối báo giá
-
 ```
-Bước 5 (thay thế): RESIDENT từ chối
-  PATCH /maintenance-requests/quotations/{qId}/status?status=REJECTED
-  → quotationStatus: REJECTED, requestStatus: QUOTING
-
-→ Quay lại Bước 3: STAFF lập báo giá mới
+[RESIDENT] maintenance-quotation/reject → QUOTING
+[STAFF]    maintenance-quotation/create (lại)
 ```
 
----
-
-### Luồng phụ — Đàm phán lịch sửa chữa
-
+### Luồng phụ — Đàm phán lịch
 ```
-Bước 7 (thay thế): STAFF đề xuất lại lịch
-  PATCH /maintenance-requests/{id}/schedules/{sId}/respond
-  { action: "COUNTER_PROPOSE", counterProposedTime: "...", note: "..." }
-  → Tạo schedule mới (proposedByRole=STAFF, parentScheduleId=sId)
+[RESIDENT] maintenance-schedule/propose → PROPOSED
+[STAFF]    maintenance-schedule/counter → COUNTER_PROPOSED + record mới
+[RESIDENT] maintenance-schedule/accept  → IN_PROGRESS ✅
+```
 
-RESIDENT phản hồi schedule mới:
-  PATCH /maintenance-requests/{id}/schedules/{newSId}/respond
-  { action: "ACCEPT" }  hoặc  { action: "COUNTER_PROPOSE", ... }
+### Luồng phụ — Yêu cầu làm lại
+```
+[RESIDENT] maintenance-review/submit (REDO) → IN_PROGRESS
+[STAFF]    maintenance-progress/add (×n)    → COMPLETED
+[RESIDENT] maintenance-review/submit (ACCEPTED) → RESIDENT_ACCEPTED ✅
 ```
 
 ---
 
-### Luồng phụ — Cư dân yêu cầu làm lại
+## Phụ lục — Checklist triển khai
 
-```
-Bước 10 (thay thế): RESIDENT yêu cầu làm lại
-  POST /maintenance-requests/{id}/review  { outcome: "REDO", comment: "..." }
-  → requestStatus: IN_PROGRESS (quay lại Bước 8)
-```
-
----
-
-### Luồng phụ — Hủy yêu cầu
-
-```
-Bất kỳ lúc nào (PENDING hoặc VERIFYING):
-  PATCH /maintenance-requests/{id}/cancel  { reason: "..." }
-  → requestStatus: CANCELLED, closedAt được set
-```
-
----
-
-## 14. Hướng dẫn FE theo role
-
-### RESIDENT
-
-| Màn hình | API sử dụng |
-|---|---|
-| Danh sách yêu cầu của tôi | `GET /maintenance-requests` |
-| Tạo yêu cầu mới | `POST /maintenance-requests` |
-| Chi tiết yêu cầu | `GET /maintenance-requests/{id}` |
-| Hủy yêu cầu | `PATCH /{id}/cancel` |
-| Xem báo giá | `GET /{id}/quotations` |
-| Phản hồi báo giá | `PATCH /quotations/{qId}/status?status=APPROVED/REJECTED` |
-| Đề xuất lịch sửa chữa | `POST /{id}/schedules` |
-| Xem lịch sửa chữa | `GET /{id}/schedules` |
-| Phản hồi counter-propose | `PATCH /{id}/schedules/{sId}/respond` |
-| Xem tiến độ | `GET /{id}/progress` |
-| Nghiệm thu kết quả | `POST /{id}/review` |
-| Upload ảnh vấn đề | `POST /{id}/resources` |
-| Xem timeline | `GET /{id}/logs` |
-
-**Hiển thị nút hành động theo `requestStatus`:**
-
-| Status | Nút hành động |
-|---|---|
-| `PENDING` | Chỉnh sửa (`PUT`), Hủy (`PATCH /cancel`) |
-| `WAITING_APPROVAL` | Duyệt (`APPROVED`) / Từ chối (`REJECTED`) báo giá |
-| `APPROVED` | Đề xuất lịch sửa chữa |
-| `IN_PROGRESS` | Xem tiến độ |
-| `COMPLETED` | Nghiệm thu: Đồng ý / Làm lại |
-| `RESIDENT_ACCEPTED` + `isBillable=true` | Thanh toán |
-
----
-
-### STAFF
-
-| Màn hình | API sử dụng |
-|---|---|
-| Danh sách việc được giao | `GET /maintenance-requests` |
-| Chi tiết yêu cầu | `GET /maintenance-requests/{id}` |
-| Lập báo giá | `POST /{id}/quotations` |
-| Chỉnh sửa báo giá (DRAFT) | `PUT /quotations/{qId}` |
-| Gửi báo giá cho cư dân | `PATCH /quotations/{qId}/status?status=SENT` |
-| Phản hồi lịch sửa chữa | `PATCH /{id}/schedules/{sId}/respond` |
-| Cập nhật tiến độ | `POST /{id}/progress` |
-| Upload ảnh tiến độ / kết quả | `POST /{id}/resources` |
-| Xem timeline | `GET /{id}/logs` |
-
----
-
-### MANAGER
-
-| Màn hình | API sử dụng |
-|---|---|
-| Dashboard thống kê | `GET /maintenance-requests/statistics` |
-| Yêu cầu quá hạn | `GET /maintenance-requests/overdue` |
-| Workload nhân viên | `GET /maintenance-requests/staff-workload` |
-| Danh sách tất cả yêu cầu | `GET /maintenance-requests` |
-| Giao việc cho nhân viên | `PATCH /{id}/assign` |
-| Hủy bất kỳ yêu cầu nào | `PATCH /{id}/cancel` |
-| Xem toàn bộ thông tin | Tất cả GET endpoints |
-
----
-
-## Phụ lục — Checklist implement
-
-| API | Status | Ghi chú |
-|---|---|---|
-| `POST /maintenance-requests` | ✅ Có | `requesterId` chưa set từ auth |
-| `GET /maintenance-requests` | ✅ Có | Chưa filter theo role |
-| `GET /maintenance-requests/{id}` | ✅ Có | |
-| `PUT /maintenance-requests/{id}` | ✅ Có | |
-| `PATCH /{id}/cancel` | ✅ Có | |
-| `PATCH /{id}/assign` | ✅ Có | |
-| `POST /{id}/quotations` | ✅ Có | |
-| `GET /{id}/quotations` | ✅ Có | |
-| `GET /quotations/{quotationId}` | ✅ Có | |
-| `PUT /quotations/{quotationId}` | ✅ Có | |
-| `PATCH /quotations/{quotationId}/status` | ✅ Có | |
-| `POST /{id}/resources` | ✅ Có | |
-| `GET /{id}/resources` | ✅ Có | |
-| `GET /{id}/logs` | ✅ Có | `actorId` chưa set từ auth |
-| `POST /{id}/schedules` | ✅ Có | `proposedByRole` cứng là RESIDENT |
-| `GET /{id}/schedules` | ✅ Có | |
-| `PATCH /{id}/schedules/{sId}/respond` | ✅ Có | |
-| `POST /{id}/progress` | ✅ Có | `updatedBy` chưa set từ auth |
-| `GET /{id}/progress` | ✅ Có | |
-| `POST /{id}/review` | ✅ Có | `reviewedBy` chưa set từ auth |
-| `GET /{id}/review` | ✅ Có | |
-| `GET /statistics` | ✅ Có | |
-| `GET /staff-workload` | ✅ Có | |
-| `GET /overdue` | ✅ Có | Ngưỡng cứng 7 ngày |
+| API (resource/feature) | Status | Ghi chú |
+|------------------------|--------|---------|
+| maintenance-request/create | ✅ | `requesterId` chưa set từ auth |
+| maintenance-request/list | ✅ | Chưa filter theo role |
+| maintenance-request/get | ✅ | |
+| maintenance-request/update | ✅ | |
+| maintenance-request/cancel | ✅ | |
+| maintenance-request/assign | ✅ | |
+| maintenance-quotation/create | ✅ | |
+| maintenance-quotation/list | ✅ | |
+| maintenance-quotation/get | ✅ | |
+| maintenance-quotation/update | ✅ | |
+| maintenance-quotation/send | ✅ | |
+| maintenance-quotation/approve | ✅ | |
+| maintenance-quotation/reject | ✅ | |
+| maintenance-schedule/propose | ✅ | `proposedByRole` cứng RESIDENT |
+| maintenance-schedule/list | ✅ | |
+| maintenance-schedule/accept | ✅ | |
+| maintenance-schedule/reject | ✅ | |
+| maintenance-schedule/counter | ✅ | |
+| maintenance-progress/add | ✅ | `updatedBy` chưa set từ auth |
+| maintenance-progress/list | ✅ | |
+| maintenance-review/submit | ✅ | `reviewedBy` chưa set từ auth |
+| maintenance-review/get | ✅ | |
+| maintenance-resource/add | ✅ | |
+| maintenance-resource/list | ✅ | |
+| maintenance-log/list | ✅ | `actorId` chưa set từ auth |
+| maintenance-statistics/overview | ✅ | |
+| maintenance-statistics/staff-workload | ✅ | |
+| maintenance-statistics/overdue | ✅ | Ngưỡng cứng 7 ngày |
