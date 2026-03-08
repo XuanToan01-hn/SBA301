@@ -44,7 +44,7 @@ public class User extends BaseEntity{
         userRole.setUser(this);
     }
 
-//    @OneToMany(mappedBy = "user")
-//    private List<ApartmentResident> apartmentResidents;
+    @OneToMany(mappedBy = "user")
+    private List<ApartmentResident> apartmentResidents;
 
 }

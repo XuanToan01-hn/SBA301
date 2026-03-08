@@ -1,6 +1,8 @@
 package com.buildings.service;
 
+import com.buildings.dto.request.apartment_resident.ApartmentResidentRequest;
 import com.buildings.dto.response.apartment.ApartmentResponse;
+import com.buildings.dto.response.apartment_resident.ApartmentResidentResponse;
 import com.buildings.entity.enums.ApartmentStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -9,6 +11,11 @@ import java.util.List;
 import java.util.UUID;
 
 public interface AparmentService {
+
+    ApartmentResidentResponse assignResident(ApartmentResidentRequest request);
+    void removeResident(UUID apartmentId, UUID userId);
+
+
     ApartmentResponse getById(UUID apartmentId);
 
     List<ApartmentResponse> getAllApartments();
@@ -17,15 +24,15 @@ public interface AparmentService {
 
     Page<ApartmentResponse> getByBuildingIdPaged(UUID buildingId, Pageable pageable);
 
-    ApartmentResponse getByBuildingAndCode(UUID buildingId, String code);
-
-    boolean checkExists(UUID buildingId, String code);
-
-    List<ApartmentResponse> getByBuildingAndFloor(UUID buildingId, Integer floorNumber);
-
-    Page<ApartmentResponse> getByBuildingAndStatus(UUID buildingId, ApartmentStatus status, Pageable pageable);
-
-    Page<ApartmentResponse> getByBuildingAndBedrooms(UUID buildingId, Integer bedroomCount, Pageable pageable);
+//    ApartmentResponse getByBuildingAndCode(UUID buildingId, String code);
+//
+//    boolean checkExists(UUID buildingId, String code);
+//
+//    List<ApartmentResponse> getByBuildingAndFloor(UUID buildingId, Integer floorNumber);
+//
+//    Page<ApartmentResponse> getByBuildingAndStatus(UUID buildingId, ApartmentStatus status, Pageable pageable);
+//
+//    Page<ApartmentResponse> getByBuildingAndBedrooms(UUID buildingId, Integer bedroomCount, Pageable pageable);
 
     Long countTotalInBuilding(UUID buildingId);
 

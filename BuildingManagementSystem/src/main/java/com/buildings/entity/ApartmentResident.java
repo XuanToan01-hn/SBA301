@@ -28,7 +28,7 @@ public class ApartmentResident extends BaseEntity {
     private Apartment apartment;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_apartment_resident_user"))
+    @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name =  "fk_apartment_resident_user"))
     private User user;
 
     @Enumerated(EnumType.STRING)

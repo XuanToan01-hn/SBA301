@@ -1,7 +1,9 @@
 package com.buildings.controller;
 
 import com.buildings.dto.ApiResponse;
+import com.buildings.dto.request.apartment_resident.ApartmentResidentRequest;
 import com.buildings.dto.response.apartment.ApartmentResponse;
+import com.buildings.dto.response.apartment_resident.ApartmentResidentResponse;
 import com.buildings.entity.enums.ApartmentStatus;
 import com.buildings.service.AparmentService;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +22,13 @@ import java.util.UUID;
 public class ApartmentController {
 
     private final AparmentService apartmentService;
+
+    @PostMapping("/assign-resident")
+    public ApiResponse<ApartmentResidentResponse> assign(@RequestBody ApartmentResidentRequest request) {
+        return ApiResponse.<ApartmentResidentResponse>builder()
+                .result(apartmentService.assignResident(request))
+                .build();
+    }
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<ApartmentResponse>>> getAllApartments() {
