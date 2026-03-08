@@ -8,5 +8,6 @@ import com.buildings.dto.response.user.UserResponse;
 public interface AuthenticationService {
     AuthenticationResponse authenticate(AuthenticationRequest authenticationRequest);
     UserResponse signup(UserCreateRequest request);
+    boolean verifyToken(String token);
 
 }

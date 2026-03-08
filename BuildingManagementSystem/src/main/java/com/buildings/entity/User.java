@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -35,7 +36,13 @@ public class User extends BaseEntity{
 
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<UserRole> userRoles;
+    private List<UserRole> userRoles = new ArrayList<>(); // Khởi tạo sẵn ArrayList
+
+    public void addUserRole(UserRole userRole) {
+        if (userRoles == null) userRoles = new ArrayList<>();
+        userRoles.add(userRole);
+        userRole.setUser(this);
+    }
 
 //    @OneToMany(mappedBy = "user")
 //    private List<ApartmentResident> apartmentResidents;

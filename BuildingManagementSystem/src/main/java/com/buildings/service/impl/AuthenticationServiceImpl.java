@@ -1,254 +1,110 @@
-package com.buildings.service.impl;//package com.buildings.service.impl;
-//
-// import com.buildings.configuration.JwtTokenProvider;
-// import com.buildings.dto.request.Auth.AuthenticationRequest;
-// import com.buildings.dto.request.user.UserCreateRequest;
-// import com.buildings.dto.response.Auth.AuthenticationResponse;
-// import com.buildings.dto.response.user.UserResponse;
-// import com.buildings.entity.User;
-// import com.buildings.entity.UserRole;
-// import com.buildings.entity.enums.UserStatus;
-// import com.buildings.exception.AppException;
-// import com.buildings.exception.ErrorCode;
-// import com.buildings.repository.RoleRepository;
-// import com.buildings.repository.UserRepository;
-// import com.buildings.repository.UserRoleRepository;
-// import com.buildings.service.AuthenticationService;
-//
-// import jakarta.transaction.Transactional;
-// import lombok.extern.slf4j.Slf4j;
-// import org.springframework.beans.factory.annotation.Autowired;
-//
-// import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-// import org.springframework.security.crypto.password.PasswordEncoder;
-// import org.springframework.stereotype.Service;
-//
-// import com.buildings.entity.Role;
-//
-//
-//@Service
-// @Slf4j
-// public class AuthenticationServiceImpl implements AuthenticationService {
-//
-//     @Autowired
-//     private UserRepository userRepository;
-//
-//     @Autowired
-//     private RoleRepository roleRepository;
-//
-//     @Autowired
-//     private UserRoleRepository userRoleRepository; // Cần thêm repo này
-//
-//     @Autowired
-//     private PasswordEncoder passwordEncoder;
-//
-//     @Autowired
-//     private JwtTokenProvider jwtTokenProvider;
-//
-//
-//         @Override
-//         @Transactional
-//         public UserResponse signup(UserCreateRequest request) {
-//             if (userRepository.findByEmailWithRoles(request.getEmail()).isPresent()) {
-//                 throw new AppException(ErrorCode.USER_EXISTED);
-//             }
-//
-//             User user = User.builder()
-//                     .fullName(request.getFullName())
-//                     .email(request.getEmail())
-//                     .password(passwordEncoder.encode(request.getPassword()))
-//                     .phone(request.getPhone())
-//                     .status(UserStatus.ACTIVE)
-//                     .build();
-//
-//             User savedUser = userRepository.save(user);
-//
-//             if (request.getRoles() != null) {
-//                 for (String roleCode : request.getRoles()) {
-//                     Role role = roleRepository.findByCode(roleCode)
-//                             .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_EXISTED));
-//
-//                     UserRole userRole = UserRole.builder()
-//                             .user(savedUser)
-//                             .role(role)
-//                             .building(null) // Mặc định signup chưa có building, hoặc set tùy logic
-//                             .build();
-//                     userRoleRepository.save(userRole);
-//                 }
-//             }
-//
-//             return UserResponse.builder()
-//                     .fullName(savedUser.getFullName())
-//                     .email(savedUser.getEmail())
-//                     .status(savedUser.getStatus())
-//                     .build();
-//         }
-//
-//
-//     @Override
-//     public AuthenticationResponse authenticate(AuthenticationRequest authenticationRequest) {
-//         PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
-//
-//         User user = userRepository.findByEmailWithRoles(authenticationRequest.getEmail())
-//                 .orElseThrow(() ->
-//                         new AppException(ErrorCode.USER_NOT_EXISTED));
-//
-//         boolean matches = passwordEncoder.matches(authenticationRequest.getPassword(), user.getPassword());
-//         if(!matches) {
-//             throw new AppException(ErrorCode.INVALID_EMAIL_PASSWORD);
-//         }
-//
-//         String accessToken = jwtTokenProvider.generateToken(user.getEmail());
-//
-//         log.info("User {} logged in successfully with role {}", user.getFullName());
-//
-//         return AuthenticationResponse.builder()
-//                 .token(accessToken)
-//                 .authenticated(true)
-//                 .build();
-//     }
-//
-////     @Override
-////     public UserResponse signup(UserCreateRequest request) {
-////
-////         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-////             throw new AppException(ErrorCode.USER_EXISTED);
-////         }
-////         User user = User.builder()
-////                 .fullName(request.getFullName())
-////                 .email(request.getEmail())
-////                 .password(passwordEncoder.encode(request.getPassword()))
-////                 .phone(request.getPhone())
-////                 .status(UserStatus.ACTIVE)
-////                 .build();
-////
-////         userRepository.save(user);
-////
-////         return UserResponse.builder()
-////                 .fullName(user.getFullName())
-////                 .email(user.getEmail())
-////                 .phone(user.getPhone())
-////                 .status(user.getStatus())
-////                 .build();
-////     }
-//
-////     @Override
-////     public AuthenticationResponse refreshToken(RefreshRequest request) throws ParseException, JOSEException {
-////         SignedJWT signedJWT = verifyRefreshToken(request.getToken());
-////
-////         String jit = signedJWT.getJWTClaimsSet().getJWTID();
-////         Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
-////
-////         InvalidTokenEntity invalidToken = InvalidTokenEntity.builder()
-////                 .id(jit)
-////                 .expiryTime(expiryTime)
-////                 .build();
-////         invalidTokenRepository.save(invalidToken);
-////
-////         String username = signedJWT.getJWTClaimsSet().getSubject();
-////         User user = userRepository.findByUsername(username);
-////         if(user == null) {
-////             throw new UserNotFound("User not found");
-////         }
-////
-////         String newAccessToken = generateToken(user, VALID_DURATION);
-////         String newRefreshToken = generateToken(user, REFRESHABLE_DURATION);
-////
-////         log.info("Tokens refreshed for user {}", username);
-////
-////         return AuthenticationResponse.builder()
-////                 .token(newRefreshToken)
-//// //                .refreshToken(newRefreshToken)
-////                 .authenticated(true)
-////                 .build();
-////     }
-////
-////     @Override
-////     public void logout(LogoutRequest request) throws ParseException, JOSEException {
-////         try {
-////             SignedJWT signedToken = SignedJWT.parse(request.getToken());
-////             String jit = signedToken.getJWTClaimsSet().getJWTID();
-////             Date expiryTime = signedToken.getJWTClaimsSet().getExpirationTime();
-////
-////             InvalidTokenEntity invalidToken = InvalidTokenEntity.builder()
-////                     .id(jit)
-////                     .expiryTime(expiryTime)
-////                     .build();
-////             invalidTokenRepository.save(invalidToken);
-////
-////             log.info("User logged out, token invalidated: {}", jit);
-////         } catch (ParseException e) {
-////             log.error("Error parsing token during logout", e);
-////             throw new InvalidTokenException("Invalid token format");
-////         }
-////     }
-////
-////
-////     private String generateToken(User user, long durationInSeconds) {
-////         JWSHeader header = new JWSHeader(JWSAlgorithm.HS512);
-////
-////         JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
-////                 .subject(user.getUsername())
-////                 .issuer("practice.app")
-////                 .claim("userId", user.getId())
-////                 .claim("scope", buildScope(user))
-////                 .issueTime(new Date())
-////                 .expirationTime(new Date(
-////                         Instant.now().plus(durationInSeconds, ChronoUnit.SECONDS).toEpochMilli()))
-////                 .jwtID(UUID.randomUUID().toString())
-////                 .build();
-////
-////         Payload payload = new Payload(jwtClaimsSet.toJSONObject());
-////         JWSObject jwsObject = new JWSObject(header, payload);
-////
-////         try {
-////             jwsObject.sign(new MACSigner(SIGNER_KEY.getBytes()));
-////             return jwsObject.serialize();
-////         } catch (JOSEException e) {
-////             log.error("Cannot create token", e);
-////             throw new RuntimeException(e);
-////         }
-////     }
-////
-////     @Override
-////     public boolean verifyToken(String token) {
-////         try {
-////             SignedJWT signedJWT = SignedJWT.parse(token);
-////             JWSVerifier verifier = new MACVerifier(SIGNER_KEY.getBytes());
-////             Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
-////             boolean isValid = signedJWT.verify(verifier);
-////
-////             if (!(isValid && expiryTime.after(new Date()) &&
-////                     !invalidTokenRepository.existsById(signedJWT.getJWTClaimsSet().getJWTID()))) {
-////                 throw new InvalidTokenException("Token is not valid");
-////             }
-////             return true;
-////         } catch (JOSEException | ParseException e) {
-////             throw new InvalidTokenException("Token is not valid");
-////         }
-////     }
-////
-////     private SignedJWT verifyRefreshToken(String token) throws JOSEException, ParseException {
-////         SignedJWT signedJWT = SignedJWT.parse(token);
-////         JWSVerifier verifier = new MACVerifier(SIGNER_KEY.getBytes());
-////
-////         Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
-////         boolean verified = signedJWT.verify(verifier);
-////
-////         if(invalidTokenRepository.existsById(signedJWT.getJWTClaimsSet().getJWTID())) {
-////             throw new InvalidTokenException("Token has been logged out");
-////         }
-////
-////         if(!(verified && expiryTime.after(new Date()))) {
-////             throw new InvalidTokenException("Token expired or invalid");
-////         }
-////         return signedJWT;
-////     }
-////
-////     private String buildScope(User user) {
-////         if(user.getRole() != null) {
-////             return "ROLE_" + user.getRole().getCode();
-////         }
-////         return "ROLE_USER"; // Default fallback
-////     }
-// }
+package com.buildings.service.impl;
+
+import com.buildings.configuration.JwtProvider;
+import com.buildings.dto.request.Auth.AuthenticationRequest;
+import com.buildings.dto.request.user.UserCreateRequest;
+import com.buildings.dto.response.Auth.AuthenticationResponse;
+import com.buildings.dto.response.user.UserResponse;
+import com.buildings.entity.Building;
+import com.buildings.entity.Role;
+import com.buildings.entity.User;
+import com.buildings.entity.UserRole;
+import com.buildings.entity.enums.UserStatus;
+import com.buildings.exception.AppException;
+import com.buildings.exception.ErrorCode;
+import com.buildings.mapper.UserMapper;
+import com.buildings.repository.BuildingRepository;
+import com.buildings.repository.RoleRepository;
+import com.buildings.repository.UserRepository;
+import com.buildings.repository.UserRoleRepository;
+import com.buildings.service.AuthenticationService;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.stream.Collectors;
+
+@Service
+@Slf4j
+@RequiredArgsConstructor
+public class AuthenticationServiceImpl implements AuthenticationService {
+
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final UserRoleRepository userRoleRepository;
+    private final BuildingRepository buildingRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final UserMapper userMapper;
+    private final JwtProvider jwtProvider;
+
+    @Override
+    @Transactional
+    public UserResponse signup(UserCreateRequest request) {
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new AppException(ErrorCode.USER_EXISTED);
+        }
+
+        User user = userMapper.toUser(request);
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setStatus(UserStatus.ACTIVE);
+        user.setUserRoles(new ArrayList<>());
+
+        User savedUser = userRepository.save(user);
+
+        if (request.getAssignments() != null) {
+            request.getAssignments().forEach(assignment -> {
+                Building building = (assignment.getBuildingId() != null)
+                        ? buildingRepository.findById(assignment.getBuildingId()).orElse(null)
+                        : null;
+
+                assignment.getRoleCodes().forEach(code -> {
+                    Role role = roleRepository.findByCode(code)
+                            .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_EXISTED));
+
+                    UserRole userRole = UserRole.builder()
+                            .user(savedUser)
+                            .role(role)
+                            .building(code.equals("ADMIN") ? null : building)
+                            .build();
+
+                    // LƯU Ý QUAN TRỌNG: Lưu vào DB đồng thời add vào object trong bộ nhớ
+                    userRoleRepository.save(userRole);
+                    savedUser.getUserRoles().add(userRole);
+                });
+            });
+        }
+
+        // Lúc này savedUser.getUserRoles() đã có dữ liệu, Mapper sẽ hoạt động đúng
+        return userMapper.toUserResponse(savedUser);
+    }
+
+    @Override
+    public AuthenticationResponse authenticate(AuthenticationRequest request) {
+        User user = userRepository.findByEmailWithRoles(request.getEmail())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new AppException(ErrorCode.INVALID_EMAIL_PASSWORD);
+        }
+
+        String accessToken = jwtProvider.generateToken(user);
+
+        return AuthenticationResponse.builder()
+                .token(accessToken)
+                .authenticated(true)
+                .build();
+    }
+
+    @Override
+    public boolean verifyToken(String token) {
+        try {
+            jwtProvider.verifyToken(token);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+}

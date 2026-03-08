@@ -17,7 +17,6 @@ import java.util.UUID;
 @RequestMapping("/api/apartments")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
-
 public class ApartmentController {
 
     private final AparmentService apartmentService;

@@ -1,26 +1,19 @@
 package com.buildings.dto.response.user;
 
 import com.buildings.entity.enums.UserStatus;
-import jakarta.persistence.Column;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import lombok.*;
-import lombok.experimental.FieldDefaults;
-
-import java.time.LocalDate;
-import java.util.Set;
+import java.util.List;
+import java.util.UUID;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-@FieldDefaults(level = AccessLevel.PRIVATE)
 public class UserResponse {
+    private UUID id;
     private String fullName;
     private String email;
-    private String password;
     private String phone;
-    @Enumerated(EnumType.STRING)
     private UserStatus status;
+    private List<UserRoleResponse> roles; // Trả về danh sách quyền kèm tòa nhà
 }
-
