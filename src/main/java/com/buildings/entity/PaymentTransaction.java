@@ -81,4 +81,7 @@ public class PaymentTransaction extends BaseEntity {
     // 🔹 Verified Time
     // ===============================
     private LocalDateTime verifiedAt;
+
+    @Column(unique = true)
+    private Long orderCode;
 }

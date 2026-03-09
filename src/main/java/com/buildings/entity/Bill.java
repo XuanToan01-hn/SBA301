@@ -34,6 +34,8 @@ public class Bill extends BaseEntity {
     @JoinColumn(name = "apartment_id")
     private Apartment apartment;
 
+    @Column(precision = 15, scale = 2)
+    private BigDecimal paidAmount = BigDecimal.ZERO;
 
     // Liên kết với quotation
 //    @OneToOne
