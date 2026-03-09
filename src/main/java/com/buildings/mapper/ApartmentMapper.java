@@ -1,5 +1,6 @@
 package com.buildings.mapper;
 
+
 import com.buildings.dto.response.apartment.ApartmentResponse;
 import com.buildings.entity.Apartment;
 import org.mapstruct.Mapper;

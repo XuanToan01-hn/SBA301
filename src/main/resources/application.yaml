@@ -7,7 +7,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/building_management
     username: root
-    password: admin
+    password: 12345
   jpa:
     hibernate:
       ddl-auto: update
