@@ -6,9 +6,8 @@ server:
 spring:
   datasource:
     url: jdbc:mysql://localhost:3306/building_management
-    hikari:
-      username: root
-      password: admin
+    username: root
+    password: admin
   jpa:
     hibernate:
       ddl-auto: update

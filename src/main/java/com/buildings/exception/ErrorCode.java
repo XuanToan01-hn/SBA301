@@ -25,6 +25,8 @@ public enum ErrorCode {
     BUILD_HAS_APARTMENT(1014, "Build has apartment", HttpStatus.BAD_REQUEST),
     APARTMENT_ALREADY_GENERATED(1015, "Apartment already generated", HttpStatus.BAD_REQUEST),
     APARTMENT_NOT_FOUND(1016, "Apartment not found", HttpStatus.NOT_FOUND),
+    ROLE_NOT_EXISTED(1017, "Role not existed", HttpStatus.NOT_FOUND),
+
     // Service & Tariff errors (2xxx)
     SERVICE_NOT_FOUND(2001, "Service not found", HttpStatus.NOT_FOUND),
     SERVICE_CODE_EXISTED(2002, "Service code already exists", HttpStatus.BAD_REQUEST),
