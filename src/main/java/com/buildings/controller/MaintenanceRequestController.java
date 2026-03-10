@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/maintenance-requests")
+@RequestMapping("/api/maintenance-requests")
 @RequiredArgsConstructor
 @Tag(name = "Maintenance - Requests", description = "Core request lifecycle: create, list, update, assign, cancel")
 public class MaintenanceRequestController {

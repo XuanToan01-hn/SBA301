@@ -14,9 +14,9 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/maintenance-requests")
+@RequestMapping("/api/maintenance/statistics")
 @RequiredArgsConstructor
-@Tag(name = "Maintenance - Statistics", description = "Reporting: statistics, staff workload, overdue requests")
+@Tag(name = "Maintenance - Statistics", description = "Operations: get statistics for maintenance")
 public class MaintenanceStatisticsController {
 
     private final MaintenanceStatisticsService maintenanceStatisticsService;

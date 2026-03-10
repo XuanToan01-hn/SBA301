@@ -15,9 +15,9 @@ import java.util.UUID;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/maintenance-requests/quotations")
+@RequestMapping("/api/maintenance-quotations")
 @RequiredArgsConstructor
-@Tag(name = "Maintenance - Quotations", description = "Direct quotation operations by quotation ID")
+@Tag(name = "Maintenance - Quotations", description = "Operations: create, get, respond to quotation")
 public class MaintenanceQuotationController {
 
     private final MaintenanceQuotationService maintenanceQuotationService;

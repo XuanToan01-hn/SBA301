@@ -140,6 +140,15 @@ public class BuildingController {
         return ApiResponse.<Boolean>builder().result(exists).build();
     }
 
+
+    @GetMapping("/resident/{email}")
+    public ApiResponse<BuildingDTO> getBuildingByResidentEmail(@PathVariable String email) {
+        return ApiResponse.<BuildingDTO>builder()
+                .result(buildingService.getBuildingByResidentEmail(email))
+                .build();
+    }
+
+
     private Map<String, Object> wrapPagination(Page<BuildingDTO> page) {
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("data", page.getContent());

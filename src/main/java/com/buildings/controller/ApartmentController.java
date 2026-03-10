@@ -153,4 +153,14 @@ public class ApartmentController {
                 .build();
     }
 
+    @GetMapping("/resident/{email}")
+    public ResponseEntity<ApiResponse<List<ApartmentResponse>>> getByResidentEmail(
+            @PathVariable String email) {
+        return ResponseEntity.ok(
+                ApiResponse.<List<ApartmentResponse>>builder()
+                        .result(apartmentService.getApartmentsByResidentEmail(email))
+                        .message("Get apartments by resident email successfully")
+                        .build()
+        );
+    }
 }

@@ -15,9 +15,9 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/maintenance-requests")
+@RequestMapping("/api/maintenance-workflows")
 @RequiredArgsConstructor
-@Tag(name = "Maintenance - Workflow", description = "Sub-resources per request: quotations, resources, logs, schedules, progress, review")
+@Tag(name = "Maintenance - Workflows", description = "Progress lifecycle: in-progress, hold, complete, verify")
 public class MaintenanceWorkflowController {
 
     private final MaintenanceWorkflowService maintenanceWorkflowService;

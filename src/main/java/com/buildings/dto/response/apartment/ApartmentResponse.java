@@ -18,4 +18,5 @@ public class ApartmentResponse {
     private ApartmentStatus status;
 
     private String buildingName;
+    private UUID buildingId;
 }
