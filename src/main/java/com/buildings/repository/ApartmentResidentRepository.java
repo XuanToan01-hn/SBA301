@@ -12,6 +12,6 @@ import java.util.UUID;
 @Repository
 public interface ApartmentResidentRepository extends JpaRepository<ApartmentResident, UUID> {
     Optional<ApartmentResident> findByUserIdAndApartmentIdAndMovedOutAtIsNull(UUID userId, UUID apartmentId);
-
+    Optional<ApartmentResident> findFirstByUserIdAndMovedOutAtIsNullOrderByAssignedAtDesc(UUID userId);
     boolean existsByUserIdAndApartmentIdAndMovedOutAtIsNull(UUID userId, UUID apartmentId);
 }

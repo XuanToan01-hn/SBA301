@@ -37,20 +37,16 @@ public class ApartmentServiceImpl implements AparmentService {
     @Override
     @Transactional
     public ApartmentResidentResponse assignResident(ApartmentResidentRequest request) {
-        // 1. Check Apartment có tồn tại không
         Apartment apartment = apartmentRepository.findById(request.getApartmentId())
                 .orElseThrow(() -> new AppException(ErrorCode.APARTMENT_NOT_FOUND));
 
-        // 2. Check User có tồn tại không
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
-        // 3. Check xem ông này có đang ở chính căn hộ này chưa (tránh insert trùng)
         if (residentRepository.existsByUserIdAndApartmentIdAndMovedOutAtIsNull(request.getUserId(), request.getApartmentId())) {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
 
-        // 4. Map DTO sang Entity ApartmentResident để lưu vào bảng apartment_residents
         ApartmentResident resident = ApartmentResident.builder()
                 .apartment(apartment)
                 .user(user)
@@ -65,12 +61,15 @@ public class ApartmentServiceImpl implements AparmentService {
 
         residentRepository.save(resident);
 
-        // 5. Trả về thông tin vừa gán
         return ApartmentResidentResponse.builder()
+                .id(resident.getId()) // Thêm ID của bản ghi vừa tạo
+                .apartmentId(apartment.getId()) // Thêm ID căn hộ
                 .apartmentCode(apartment.getCode())
+                .userId(user.getId()) // Thêm ID người dùng
                 .fullName(user.getFullName())
                 .residentType(resident.getResidentType())
                 .assignedAt(resident.getAssignedAt())
+                .isCurrent(true) // Gán là true vì đây là cư dân đang hoạt động (movedOutAt is null)
                 .build();
     }
     @Override
