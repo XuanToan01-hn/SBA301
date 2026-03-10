@@ -148,8 +148,12 @@ public class ApartmentServiceImpl implements AparmentService {
     }
 
     @Override
-    @Transactional
     public void deleteByBuilding(UUID buildingId) {
         apartmentRepository.deleteByBuildingId(buildingId);
+    }
+
+    @Override
+    public List<ApartmentResponse> getApartmentsByResidentEmail(String email) {
+        return apartmentMapper.toResponseList(apartmentRepository.findByResidentEmail(email));
     }
 }

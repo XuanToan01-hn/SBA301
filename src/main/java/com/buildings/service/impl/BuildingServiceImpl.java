@@ -213,6 +213,13 @@ public class BuildingServiceImpl implements BuildingService {
     }
 
 
+    @Override
+    public BuildingDTO getBuildingByResidentEmail(String email) {
+        Building building = buildingRepository.findByResidentEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.BUILDING_NOT_FOUND));
+        return mapToDTOWithCount(building);
+    }
+
     @Override public boolean buildingCodeExists(String code) { return buildingRepository.existsByCode(code); }
     @Override public boolean buildingNameExists(String name) { return buildingRepository.existsByName(name); }
     @Override public boolean buildingCodeExistsExcluding(String code, UUID id) { return false; } // Implement tùy Repo

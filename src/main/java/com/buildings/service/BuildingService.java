@@ -41,4 +41,6 @@ public interface BuildingService {
     Page<BuildingDTO> getBuildingsWithGeneratedApartments(Pageable pageable);
 
     List<BuildingDTO> getAllBuildings();
+
+    BuildingDTO getBuildingByResidentEmail(String email);
 }
