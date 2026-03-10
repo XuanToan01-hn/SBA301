@@ -1,7 +1,9 @@
 package com.buildings.entity.enums;
 
 public enum PaymentStatus {
-    PENDING,
-    SUCCESS,
-    FAILED
+    UNPAID,
+    PAID,
+    PARTIAL,
+    REFUNDED,
+    OVERDUE,
 }

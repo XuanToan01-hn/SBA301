@@ -29,7 +29,7 @@ public class JwtProvider {
         JWSHeader header = new JWSHeader(JWSAlgorithm.HS512);
 
         JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
-                .subject(user.getEmail())
+                .subject(String.valueOf(user.getId()))
                 .issuer("buildings.com")
                 .issueTime(new Date())
                 .expirationTime(new Date(

@@ -146,6 +146,14 @@ INSERT INTO maintenance_schedules (id, maintenance_request_id, proposed_time, es
 -- 9. MAINTENANCE_QUOTATIONS (5 records)
 -- --------------------------------------------------------
 SET @q1 = UUID(); SET @q2 = UUID(); SET @q3 = UUID();
+UPDATE maintenance_quotations
+SET created_at = '2026-02-10',
+    updated_at = '2026-02-10'
+WHERE id = @q3;
+
+UPDATE maintenance_requests
+SET apartment_id = @a1
+WHERE id = @r3;
 
 INSERT INTO maintenance_quotations (id, maintenance_request_id, code, title, status, total_amount, created_at, updated_at, is_deleted) VALUES
                                                                                                                                            (@q1, @r6, 'QT-elevator', 'Báo giá linh kiện thang máy', 'SENT', 5500000.00, NOW(), NOW(), 0),

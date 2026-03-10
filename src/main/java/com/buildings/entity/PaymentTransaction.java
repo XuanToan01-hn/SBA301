@@ -20,7 +20,7 @@ public class PaymentTransaction extends BaseEntity {
     // ===============================
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bill_id", nullable = false)
-    private Bill bill;
+    private MonthlyBills bill;
 
     // ===============================
     // 🔹 Amount
