@@ -1,18 +1,26 @@
 package com.buildings.service.impl;
 
+import com.buildings.dto.request.apartment_resident.ApartmentResidentRequest;
 import com.buildings.dto.response.apartment.ApartmentResponse;
+import com.buildings.dto.response.apartment_resident.ApartmentResidentResponse;
 import com.buildings.entity.Apartment;
+import com.buildings.entity.ApartmentResident;
+import com.buildings.entity.User;
 import com.buildings.entity.enums.ApartmentStatus;
 import com.buildings.exception.AppException;
 import com.buildings.exception.ErrorCode;
 import com.buildings.mapper.ApartmentMapper;
 import com.buildings.repository.ApartmentRepository;
+import com.buildings.repository.ApartmentResidentRepository;
+import com.buildings.repository.UserRepository;
 import com.buildings.service.AparmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -23,6 +31,48 @@ public class ApartmentServiceImpl implements AparmentService {
     private final ApartmentRepository apartmentRepository;
     private final ApartmentMapper apartmentMapper;
 
+    private final UserRepository userRepository;
+    private final ApartmentResidentRepository residentRepository;
+
+    @Override
+    @Transactional
+    public ApartmentResidentResponse assignResident(ApartmentResidentRequest request) {
+        // 1. Check Apartment có tồn tại không
+        Apartment apartment = apartmentRepository.findById(request.getApartmentId())
+                .orElseThrow(() -> new AppException(ErrorCode.APARTMENT_NOT_FOUND));
+
+        // 2. Check User có tồn tại không
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        // 3. Check xem ông này có đang ở chính căn hộ này chưa (tránh insert trùng)
+        if (residentRepository.existsByUserIdAndApartmentIdAndMovedOutAtIsNull(request.getUserId(), request.getApartmentId())) {
+            throw new AppException(ErrorCode.USER_EXISTED);
+        }
+
+        // 4. Map DTO sang Entity ApartmentResident để lưu vào bảng apartment_residents
+        ApartmentResident resident = ApartmentResident.builder()
+                .apartment(apartment)
+                .user(user)
+                .residentType(request.getResidentType())
+                .idCardNumber(request.getIdCardNumber())
+                .contractDetails(request.getContractDetails())
+                .ownershipCertificate(request.getOwnershipCertificate())
+                .legalDocs(request.getLegalDocs())
+                .note(request.getNote())
+                .assignedAt(LocalDateTime.now())
+                .build();
+
+        residentRepository.save(resident);
+
+        // 5. Trả về thông tin vừa gán
+        return ApartmentResidentResponse.builder()
+                .apartmentCode(apartment.getCode())
+                .fullName(user.getFullName())
+                .residentType(resident.getResidentType())
+                .assignedAt(resident.getAssignedAt())
+                .build();
+    }
     @Override
     public List<ApartmentResponse> getAllApartments() {
         return apartmentMapper.toResponseList(apartmentRepository.findAll());

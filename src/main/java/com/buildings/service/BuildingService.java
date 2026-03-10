@@ -8,6 +8,11 @@ import java.util.List;
 import java.util.UUID;
 
 public interface BuildingService {
+    Page<BuildingDTO> searchBuildings(
+            String search,
+            Boolean apartmentsGenerated,
+            Pageable pageable
+    );
 
     BuildingDTO createBuilding(BuildingDTO buildingDTO);
 

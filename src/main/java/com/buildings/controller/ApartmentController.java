@@ -1,9 +1,13 @@
 package com.buildings.controller;
 
 import com.buildings.dto.ApiResponse;
+import com.buildings.dto.request.apartment_resident.ApartmentResidentRequest;
 import com.buildings.dto.response.apartment.ApartmentResponse;
+import com.buildings.dto.response.apartment_resident.ApartmentResidentResponse;
 import com.buildings.entity.enums.ApartmentStatus;
 import com.buildings.service.AparmentService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,11 +20,16 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/apartments")
 @RequiredArgsConstructor
+@Tag(name = "Apartments", description = "APIs quản lý căn hộ trong tòa nhà")
 public class ApartmentController {
 
     private final AparmentService apartmentService;
 
     @GetMapping
+    @Operation(
+            summary = "Danh sách tất cả căn hộ",
+            description = "Lấy toàn bộ danh sách căn hộ trong hệ thống"
+    )
     public ResponseEntity<ApiResponse<List<ApartmentResponse>>> getAllApartments() {
         return ResponseEntity.ok(
                 ApiResponse.<List<ApartmentResponse>>builder()
@@ -31,6 +40,10 @@ public class ApartmentController {
     }
 
     @GetMapping("/{apartmentId}")
+    @Operation(
+            summary = "Chi tiết căn hộ",
+            description = "Lấy thông tin chi tiết của một căn hộ theo ID"
+    )
     public ResponseEntity<ApiResponse<ApartmentResponse>> getById(
             @PathVariable UUID apartmentId) {
         return ResponseEntity.ok(
@@ -43,6 +56,10 @@ public class ApartmentController {
     }
 
     @GetMapping("/building/{buildingId}")
+    @Operation(
+            summary = "Danh sách căn hộ theo tòa nhà",
+            description = "Lấy tất cả căn hộ thuộc một tòa nhà"
+    )
     public ResponseEntity<ApiResponse<List<ApartmentResponse>>> getByBuilding(
             @PathVariable UUID buildingId) {
 
@@ -55,6 +72,10 @@ public class ApartmentController {
     }
 
     @GetMapping("/building/{buildingId}/paged")
+    @Operation(
+            summary = "Danh sách căn hộ có phân trang",
+            description = "Lấy danh sách căn hộ của tòa nhà theo phân trang"
+    )
     public ResponseEntity<ApiResponse<Page<ApartmentResponse>>> getByBuildingPaged(
             @PathVariable UUID buildingId,
             Pageable pageable) {
@@ -68,6 +89,10 @@ public class ApartmentController {
     }
 
     @GetMapping("/search/filter")
+    @Operation(
+            summary = "Lọc căn hộ",
+            description = "Tìm kiếm căn hộ theo building, tầng, trạng thái, số phòng ngủ"
+    )
     public ResponseEntity<ApiResponse<Page<ApartmentResponse>>> filterApartments(
             @RequestParam UUID buildingId,
             @RequestParam(required = false) Integer floorNumber,
@@ -85,6 +110,10 @@ public class ApartmentController {
     }
 
     @GetMapping("/building/{buildingId}/with-owner")
+    @Operation(
+            summary = "Danh sách căn hộ có chủ sở hữu",
+            description = "Lấy danh sách căn hộ kèm thông tin chủ sở hữu"
+    )
     public ResponseEntity<ApiResponse<Page<ApartmentResponse>>> getWithOwner(
             @PathVariable UUID buildingId,
             Pageable pageable) {
@@ -98,6 +127,10 @@ public class ApartmentController {
     }
 
     @GetMapping("/building/{buildingId}/count")
+    @Operation(
+            summary = "Đếm số căn hộ",
+            description = "Đếm tổng số căn hộ hoặc theo trạng thái trong một tòa nhà"
+    )
     public ResponseEntity<ApiResponse<Long>> getCount(
             @PathVariable UUID buildingId,
             @RequestParam(required = false) ApartmentStatus status) {
@@ -113,18 +146,11 @@ public class ApartmentController {
                         .build()
         );
     }
-
-    @DeleteMapping("/building/{buildingId}")
-    public ResponseEntity<ApiResponse<Void>> deleteByBuilding(
-            @PathVariable UUID buildingId) {
-
-        apartmentService.deleteByBuilding(buildingId);
-
-        return ResponseEntity.ok(
-                ApiResponse.<Void>builder()
-                        .message("Delete apartments by building successfully")
-                        .build()
-        );
+    @PostMapping("/assign-resident")
+    public ApiResponse<ApartmentResidentResponse> assign(@RequestBody ApartmentResidentRequest request) {
+        return ApiResponse.<ApartmentResidentResponse>builder()
+                .result(apartmentService.assignResident(request))
+                .build();
     }
 
     @GetMapping("/resident/{email}")

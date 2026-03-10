@@ -16,6 +16,16 @@ import java.util.UUID;
 @Repository
 public interface BuildingRepository extends JpaRepository<Building, UUID> {
 
+    @Query("""
+    SELECT b FROM Building b
+    WHERE (:search = '' OR LOWER(b.name) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(b.code) LIKE LOWER(CONCAT('%', :search, '%')))
+    AND (:apartmentsGenerated IS NULL OR b.apartmentsGenerated = :apartmentsGenerated)
+""")
+    Page<Building> searchBuildings(
+            @Param("search") String search,
+            @Param("apartmentsGenerated") Boolean apartmentsGenerated,
+            Pageable pageable
+    );
     Optional<Building> findByCode(String code);
 
     Optional<Building> findByName(String name);
