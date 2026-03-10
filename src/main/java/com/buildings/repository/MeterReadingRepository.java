@@ -35,6 +35,8 @@ public interface MeterReadingRepository extends JpaRepository<MeterReading, UUID
 
     List<MeterReading> findByPeriodAndStatus(String period, MeterReadingStatus status);
 
+    List<MeterReading> findByApartmentIdAndPeriodAndStatus(UUID apartmentId, String period, MeterReadingStatus status);
+
     @Query("SELECT mr FROM MeterReading mr " +
            "WHERE (:apartmentId IS NULL OR mr.apartment.id = :apartmentId) " +
            "AND (:serviceId IS NULL OR mr.service.id = :serviceId) " +

@@ -47,6 +47,9 @@ public class MonthlyBills extends BaseEntity {
 
     private Boolean locked;
 
+    @OneToMany(mappedBy = "bill", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<BillDetail> details;
+
     // ===============================
     // One Bill → Many Payment Transactions
     // ===============================
