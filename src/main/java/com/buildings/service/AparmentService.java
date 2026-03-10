@@ -37,5 +37,7 @@ public interface AparmentService {
 
     Page<ApartmentResponse> getApartmentsWithoutOwner(UUID buildingId, Pageable pageable);
 
+    List<ApartmentResponse> getApartmentsByResidentEmail(String email);
+
     void deleteByBuilding(UUID buildingId);
 }

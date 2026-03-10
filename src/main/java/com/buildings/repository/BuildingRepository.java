@@ -44,4 +44,8 @@ public interface BuildingRepository extends JpaRepository<Building, UUID> {
 
     @Query("SELECT b FROM Building b WHERE b.apartmentsGenerated = false")
     Page<Building> findBuildingsWithoutGeneratedApartments(Pageable pageable);
+    @Query("SELECT DISTINCT b FROM Building b WHERE " +
+            "b.id IN (SELECT ur.building.id FROM UserRole ur WHERE ur.user.email = :email AND ur.building IS NOT NULL) OR " +
+            "b.id IN (SELECT a.building.id FROM Apartment a JOIN a.residents ar WHERE ar.user.email = :email AND ar.movedOutAt IS NULL)")
+    Optional<Building> findByResidentEmail(@Param("email") String email);
 }
