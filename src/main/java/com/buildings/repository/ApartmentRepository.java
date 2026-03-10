@@ -63,4 +63,6 @@ public interface ApartmentRepository extends JpaRepository<Apartment, UUID> {
 
     void deleteByBuildingId(UUID buildingId);
 
+    List<Apartment> findByStatus(ApartmentStatus status);
+
 }

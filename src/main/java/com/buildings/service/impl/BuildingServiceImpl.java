@@ -33,6 +33,13 @@ public class BuildingServiceImpl implements BuildingService {
     private final BuildingMapper buildingMapper;
 
     @Override
+    public Page<BuildingDTO> searchBuildings(String search, Boolean apartmentsGenerated, Pageable pageable) {
+        String searchTerm = (search != null) ? search : "";
+        Page<Building> page = buildingRepository.searchBuildings(searchTerm, apartmentsGenerated, pageable);
+        return page.map(this::mapToDTOWithCount);
+    }
+
+    @Override
     public BuildingDTO createBuilding(BuildingDTO buildingDTO) {
         if (buildingRepository.existsByCode(buildingDTO.getCode())) {
             throw new AppException(ErrorCode.BUILDING_CODE_ARE_EXIST);

@@ -28,6 +28,5 @@ public class UserCreateRequest {
     @Enumerated(EnumType.STRING)
     private UserStatus status;
 
-    private List<String> roles;
+    private List<RoleAssignmentRequest> assignments;
 }
-
