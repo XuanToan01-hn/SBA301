@@ -1,6 +1,8 @@
 package com.buildings.service;
 
+import com.buildings.dto.request.apartment_resident.ApartmentResidentRequest;
 import com.buildings.dto.response.apartment.ApartmentResponse;
+import com.buildings.dto.response.apartment_resident.ApartmentResidentResponse;
 import com.buildings.entity.enums.ApartmentStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -9,6 +11,8 @@ import java.util.List;
 import java.util.UUID;
 
 public interface AparmentService {
+
+    ApartmentResidentResponse assignResident(ApartmentResidentRequest request);
     ApartmentResponse getById(UUID apartmentId);
 
     List<ApartmentResponse> getAllApartments();

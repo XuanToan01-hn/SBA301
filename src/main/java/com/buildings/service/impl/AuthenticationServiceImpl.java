@@ -69,15 +69,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                             .role(role)
                             .building(code.equals("ADMIN") ? null : building)
                             .build();
-
-                    // LƯU Ý QUAN TRỌNG: Lưu vào DB đồng thời add vào object trong bộ nhớ
                     userRoleRepository.save(userRole);
                     savedUser.getUserRoles().add(userRole);
                 });
             });
         }
 
-        // Lúc này savedUser.getUserRoles() đã có dữ liệu, Mapper sẽ hoạt động đúng
         return userMapper.toUserResponse(savedUser);
     }
 
