@@ -80,3 +80,6 @@ Thumbs.db
 
 src/main/resources/application.yaml
 .idea/
+
+uploads/
+.agents/

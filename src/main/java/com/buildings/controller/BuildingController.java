@@ -3,6 +3,8 @@ package com.buildings.controller;
 import com.buildings.dto.ApiResponse;
 import com.buildings.dto.BuildingDTO;
 import com.buildings.service.BuildingService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -21,13 +23,14 @@ import java.util.UUID;
 @RequestMapping("/api/buildings")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
+@Tag(name = "Buildings", description = "APIs quản lý tòa nhà và tạo căn hộ")
 public class BuildingController {
 
     private final BuildingService buildingService;
 
-
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Tạo tòa nhà", description = "Admin hoặc Manager tạo một tòa nhà mới trong hệ thống")
     public ApiResponse<BuildingDTO> createBuilding(@Valid @RequestBody BuildingDTO buildingDTO) {
         return ApiResponse.<BuildingDTO>builder()
                 .code(201)
@@ -36,7 +39,23 @@ public class BuildingController {
                 .build();
     }
 
+
+    @GetMapping
+    @Operation(summary = "Tìm kiếm tòa nhà", description = "Search theo name/code và filter trạng thái generate căn hộ")
+    public ApiResponse<Page<BuildingDTO>> searchBuildings(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean apartmentsGenerated,
+            @PageableDefault(size = 10, page = 0) Pageable pageable) {
+        Page<BuildingDTO> result = buildingService.searchBuildings(search, apartmentsGenerated, pageable);
+        return ApiResponse.<Page<BuildingDTO>>builder()
+                .code(200)
+                .message("Lấy danh sách tòa nhà thành công")
+                .result(result)
+                .build();
+    }
+
     @PutMapping("/{id}")
+    @Operation(summary = "Cập nhật tòa nhà", description = "Cập nhật thông tin của tòa nhà theo ID")
     public ApiResponse<BuildingDTO> updateBuilding(
             @PathVariable UUID id,
             @Valid @RequestBody BuildingDTO buildingDTO) {
@@ -47,6 +66,7 @@ public class BuildingController {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Chi tiết tòa nhà", description = "Lấy thông tin chi tiết của một tòa nhà theo ID")
     public ApiResponse<BuildingDTO> getBuildingById(@PathVariable UUID id) {
         return ApiResponse.<BuildingDTO>builder()
                 .result(buildingService.getBuildingById(id))
@@ -54,6 +74,7 @@ public class BuildingController {
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Xóa tòa nhà", description = "Xóa một tòa nhà khỏi hệ thống theo ID")
     public ApiResponse<Void> deleteBuilding(@PathVariable UUID id) {
         buildingService.deleteBuilding(id);
         return ApiResponse.<Void>builder()
@@ -61,8 +82,8 @@ public class BuildingController {
                 .build();
     }
 
-
     @PostMapping("/{id}/generate-apartments")
+    @Operation(summary = "Tạo danh sách căn hộ", description = "Tự động tạo các căn hộ dựa trên cấu hình của tòa nhà")
     public ApiResponse<BuildingDTO> generateApartments(@PathVariable UUID id) {
         buildingService.generateApartments(id);
         return ApiResponse.<BuildingDTO>builder()
@@ -71,22 +92,8 @@ public class BuildingController {
                 .build();
     }
 
-
-    @GetMapping
-    public ApiResponse<Map<String, Object>> getAllBuildings(
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
-            @RequestParam(required = false) String search) {
-
-        Page<BuildingDTO> page = (search != null && !search.isEmpty())
-                ? buildingService.searchBuildings(search, pageable)
-                : buildingService.getAllBuildings(pageable);
-
-        return ApiResponse.<Map<String, Object>>builder()
-                .result(wrapPagination(page))
-                .build();
-    }
-
     @GetMapping("/all")
+    @Operation(summary = "Danh sách tất cả tòa nhà", description = "Lấy toàn bộ danh sách tòa nhà không phân trang")
     public ApiResponse<List<BuildingDTO>> getAllBuildingsNoPagination() {
         return ApiResponse.<List<BuildingDTO>>builder()
                 .result(buildingService.getAllBuildings())
@@ -94,6 +101,7 @@ public class BuildingController {
     }
 
     @GetMapping("/without-apartments")
+    @Operation(summary = "Danh sách tòa nhà chưa tạo căn hộ", description = "Lấy các tòa nhà chưa được generate apartments")
     public ApiResponse<Map<String, Object>> getBuildingsWithoutApartments(
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ApiResponse.<Map<String, Object>>builder()
@@ -101,7 +109,8 @@ public class BuildingController {
                 .build();
     }
 
-    @GetMapping("/with-apartments") // Bổ sung API này cho đủ bộ với Service
+    @GetMapping("/with-apartments")
+    @Operation(summary = "Danh sách tòa nhà đã tạo căn hộ", description = "Lấy các tòa nhà đã generate apartments")
     public ApiResponse<Map<String, Object>> getBuildingsWithApartments(
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ApiResponse.<Map<String, Object>>builder()
@@ -109,8 +118,8 @@ public class BuildingController {
                 .build();
     }
 
-
     @GetMapping("/check-code/{code}")
+    @Operation(summary = "Kiểm tra mã tòa nhà", description = "Kiểm tra mã tòa nhà đã tồn tại hay chưa")
     public ApiResponse<Boolean> checkBuildingCode(
             @PathVariable String code,
             @RequestParam(required = false) UUID excludeId) {
@@ -121,6 +130,7 @@ public class BuildingController {
     }
 
     @GetMapping("/check-name/{name}")
+    @Operation(summary = "Kiểm tra tên tòa nhà", description = "Kiểm tra tên tòa nhà đã tồn tại hay chưa")
     public ApiResponse<Boolean> checkBuildingName(
             @PathVariable String name,
             @RequestParam(required = false) UUID excludeId) {
@@ -128,6 +138,14 @@ public class BuildingController {
                 ? buildingService.buildingNameExistsExcluding(name, excludeId)
                 : buildingService.buildingNameExists(name);
         return ApiResponse.<Boolean>builder().result(exists).build();
+    }
+
+
+    @GetMapping("/resident/{email}")
+    public ApiResponse<BuildingDTO> getBuildingByResidentEmail(@PathVariable String email) {
+        return ApiResponse.<BuildingDTO>builder()
+                .result(buildingService.getBuildingByResidentEmail(email))
+                .build();
     }
 
 

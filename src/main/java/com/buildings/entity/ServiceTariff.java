@@ -36,9 +36,9 @@ public class ServiceTariff extends BaseEntity {
     @JoinColumn(name = "service_id", nullable = false)
     private Service service;
 
-    @Column(name = "service_id", insertable = false, updatable = false, length = 36)
-    @JdbcTypeCode(SqlTypes.CHAR)
-    private UUID serviceId;
+//    @Column(name = "service_id", insertable = false, updatable = false, length = 36)
+//    @JdbcTypeCode(SqlTypes.CHAR)
+//    private UUID serviceId;
 
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal price; // Đơn giá (dùng cho FIXED, AREA, METER)

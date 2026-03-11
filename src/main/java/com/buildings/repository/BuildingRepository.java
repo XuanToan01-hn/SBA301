@@ -16,6 +16,16 @@ import java.util.UUID;
 @Repository
 public interface BuildingRepository extends JpaRepository<Building, UUID> {
 
+    @Query("""
+    SELECT b FROM Building b
+    WHERE (:search = '' OR LOWER(b.name) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(b.code) LIKE LOWER(CONCAT('%', :search, '%')))
+    AND (:apartmentsGenerated IS NULL OR b.apartmentsGenerated = :apartmentsGenerated)
+""")
+    Page<Building> searchBuildings(
+            @Param("search") String search,
+            @Param("apartmentsGenerated") Boolean apartmentsGenerated,
+            Pageable pageable
+    );
     Optional<Building> findByCode(String code);
 
     Optional<Building> findByName(String name);
@@ -44,4 +54,8 @@ public interface BuildingRepository extends JpaRepository<Building, UUID> {
 
     @Query("SELECT b FROM Building b WHERE b.apartmentsGenerated = false")
     Page<Building> findBuildingsWithoutGeneratedApartments(Pageable pageable);
+    @Query("SELECT DISTINCT b FROM Building b WHERE " +
+            "b.id IN (SELECT ur.building.id FROM UserRole ur WHERE ur.user.email = :email AND ur.building IS NOT NULL) OR " +
+            "b.id IN (SELECT a.building.id FROM Apartment a JOIN a.residents ar WHERE ar.user.email = :email AND ar.movedOutAt IS NULL)")
+    Optional<Building> findByResidentEmail(@Param("email") String email);
 }

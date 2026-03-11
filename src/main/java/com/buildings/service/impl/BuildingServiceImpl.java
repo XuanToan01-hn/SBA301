@@ -33,6 +33,13 @@ public class BuildingServiceImpl implements BuildingService {
     private final BuildingMapper buildingMapper;
 
     @Override
+    public Page<BuildingDTO> searchBuildings(String search, Boolean apartmentsGenerated, Pageable pageable) {
+        String searchTerm = (search != null) ? search : "";
+        Page<Building> page = buildingRepository.searchBuildings(searchTerm, apartmentsGenerated, pageable);
+        return page.map(this::mapToDTOWithCount);
+    }
+
+    @Override
     public BuildingDTO createBuilding(BuildingDTO buildingDTO) {
         if (buildingRepository.existsByCode(buildingDTO.getCode())) {
             throw new AppException(ErrorCode.BUILDING_CODE_ARE_EXIST);
@@ -205,6 +212,13 @@ public class BuildingServiceImpl implements BuildingService {
                 e.getArea3BrSqm() != d.getArea3brSqm();
     }
 
+
+    @Override
+    public BuildingDTO getBuildingByResidentEmail(String email) {
+        Building building = buildingRepository.findByResidentEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.BUILDING_NOT_FOUND));
+        return mapToDTOWithCount(building);
+    }
 
     @Override public boolean buildingCodeExists(String code) { return buildingRepository.existsByCode(code); }
     @Override public boolean buildingNameExists(String name) { return buildingRepository.existsByName(name); }
