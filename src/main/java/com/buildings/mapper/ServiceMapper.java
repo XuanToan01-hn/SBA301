@@ -51,7 +51,7 @@ public interface ServiceMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "isDeleted", ignore = true)
     @Mapping(target = "service", ignore = true)
-    @Mapping(target = "serviceId", ignore = true)
+//    @Mapping(target = "serviceId", ignore = true)
     @Mapping(target = "tiers", ignore = true)
     ServiceTariff toTariffEntity(TariffCreateRequest request);
 
