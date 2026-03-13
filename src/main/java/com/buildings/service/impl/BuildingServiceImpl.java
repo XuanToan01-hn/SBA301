@@ -222,6 +222,6 @@ public class BuildingServiceImpl implements BuildingService {
 
     @Override public boolean buildingCodeExists(String code) { return buildingRepository.existsByCode(code); }
     @Override public boolean buildingNameExists(String name) { return buildingRepository.existsByName(name); }
-    @Override public boolean buildingCodeExistsExcluding(String code, UUID id) { return false; } // Implement tùy Repo
+    @Override public boolean buildingCodeExistsExcluding(String code, UUID id) { return false; }
     @Override public boolean buildingNameExistsExcluding(String name, UUID id) { return false; }
 }

@@ -37,7 +37,7 @@ public class User extends BaseEntity{
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UserRole> userRoles;
 
-//    @OneToMany(mappedBy = "user")
-//    private List<ApartmentResident> apartmentResidents;
+    @OneToMany(mappedBy = "user")
+    private List<ApartmentResident> apartmentResidents;
 
 }

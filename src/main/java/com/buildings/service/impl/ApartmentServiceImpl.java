@@ -21,8 +21,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -61,13 +63,16 @@ public class ApartmentServiceImpl implements AparmentService {
 
         residentRepository.save(resident);
 
+        apartment.setStatus(ApartmentStatus.OCCUPIED);
+        apartmentRepository.save(apartment);
+
         return ApartmentResidentResponse.builder()
-                .id(resident.getId()) // Thêm ID của bản ghi vừa tạo
-                .apartmentId(apartment.getId()) // Thêm ID căn hộ
+                .id(resident.getId())
+                .apartmentId(apartment.getId())
                 .apartmentCode(apartment.getCode())
-                .userId(user.getId()) // Thêm ID người dùng
+                .userId(user.getId())
                 .fullName(user.getFullName())
-                .residentType(resident.getResidentType())
+                .residentType(resident.getResidentType().name())
                 .assignedAt(resident.getAssignedAt())
                 .isCurrent(true) // Gán là true vì đây là cư dân đang hoạt động (movedOutAt is null)
                 .build();
@@ -75,14 +80,6 @@ public class ApartmentServiceImpl implements AparmentService {
     @Override
     public List<ApartmentResponse> getAllApartments() {
         return apartmentMapper.toResponseList(apartmentRepository.findAll());
-    }
-
-    @Override
-    public ApartmentResponse getById(UUID apartmentId) {
-        Apartment apartment = apartmentRepository.findById(apartmentId)
-                .orElseThrow(() -> new AppException(ErrorCode.APARTMENT_NOT_FOUND));
-
-        return apartmentMapper.toResponse(apartment);
     }
 
     @Override
@@ -133,10 +130,23 @@ public class ApartmentServiceImpl implements AparmentService {
     }
 
     @Override
-    public Page<ApartmentResponse> searchWithFilters(UUID buildingId, Integer floorNumber, ApartmentStatus status, Integer bedroomCount, Pageable pageable) {
-        return apartmentRepository.findWithFilters(buildingId, floorNumber, status, bedroomCount, pageable).map(apartmentMapper::toResponse);
-    }
+    public Page<ApartmentResponse> searchWithFilters(
+            UUID buildingId,
+            String code,
+            Integer floorNumber,
+            ApartmentStatus status,
+            Integer bedroomCount,
+            Pageable pageable) {
 
+        return apartmentRepository.findWithFilters(
+                buildingId,
+                code,
+                floorNumber,
+                status,
+                bedroomCount,
+                pageable
+        ).map(apartmentMapper::toResponse);
+    }
     @Override
     public Page<ApartmentResponse> getApartmentsWithOwner(UUID buildingId, Pageable pageable) {
         return apartmentRepository.findApartmentsWithOwner(buildingId, pageable).map(apartmentMapper::toResponse);
@@ -155,5 +165,60 @@ public class ApartmentServiceImpl implements AparmentService {
     @Override
     public List<ApartmentResponse> getApartmentsByResidentEmail(String email) {
         return apartmentMapper.toResponseList(apartmentRepository.findByResidentEmail(email));
+    }
+
+    @Override
+    public ApartmentResponse getById(UUID apartmentId) {
+        // 1. Lấy dữ liệu từ Repo
+        Apartment apartment = apartmentRepository.findByIdFullInfo(apartmentId)
+                .orElseThrow(() -> new AppException(ErrorCode.APARTMENT_NOT_FOUND));
+
+        // 2. Gọi hàm mapping thủ công và trả về
+        return mapToApartmentResponse(apartment);
+    }
+
+    // --- CÁC HÀM MAPPING THỦ CÔNG ---
+
+    private ApartmentResponse mapToApartmentResponse(Apartment apartment) {
+        if (apartment == null) return null;
+
+        // Map thông tin cư dân (chỉ lấy những người đang ở - movedOutAt == null)
+        List<ApartmentResidentResponse> residentDtos = new ArrayList<>();
+        if (apartment.getResidents() != null) {
+            residentDtos = apartment.getResidents().stream()
+                    .filter(r -> r.getMovedOutAt() == null) // Chỉ lấy cư dân hiện tại
+                    .map(this::mapToResidentResponse)      // Gọi hàm map từng cư dân
+                    .collect(Collectors.toList());
+        }
+
+        // Map thông tin căn hộ
+        return ApartmentResponse.builder()
+                .id(apartment.getId())
+                .code(apartment.getCode())
+                .floorNumber(apartment.getFloorNumber())
+                .areaSqm(apartment.getAreaSqm())
+                .bedroomCount(apartment.getBedroomCount())
+                .status(apartment.getStatus())
+                .buildingId(apartment.getBuilding() != null ? apartment.getBuilding().getId() : null)
+                .buildingName(apartment.getBuilding() != null ? apartment.getBuilding().getName() : "N/A")
+                .residents(residentDtos) // Nhét list cư dân đã map vào đây
+                .build();
+    }
+
+    private ApartmentResidentResponse mapToResidentResponse(ApartmentResident resident) {
+        if (resident == null) return null;
+
+        User user = resident.getUser(); // Lấy đối tượng User liên kết
+
+        return ApartmentResidentResponse.builder()
+                .id(resident.getId())
+                .userId(user != null ? user.getId() : null)
+                .fullName(user != null ? user.getFullName() : "N/A")
+                .email(user != null ? user.getEmail() : "N/A")
+                .phone(user != null ? user.getPhone() : "N/A")
+                .residentType(resident.getResidentType().name()) // Convert Enum sang String
+                .assignedAt(resident.getAssignedAt())
+                .isCurrent(resident.getMovedOutAt() == null)
+                .build();
     }
 }

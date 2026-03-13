@@ -35,8 +35,14 @@ public interface AparmentService {
 
     Long countByStatusInBuilding(UUID buildingId, ApartmentStatus status);
 
-    Page<ApartmentResponse> searchWithFilters(UUID buildingId, Integer floorNumber, ApartmentStatus status, Integer bedroomCount, Pageable pageable);
-
+    Page<ApartmentResponse> searchWithFilters(
+            UUID buildingId,
+            String code,
+            Integer floorNumber,
+            ApartmentStatus status,
+            Integer bedroomCount,
+            Pageable pageable
+    );
     Page<ApartmentResponse> getApartmentsWithOwner(UUID buildingId, Pageable pageable);
 
     Page<ApartmentResponse> getApartmentsWithoutOwner(UUID buildingId, Pageable pageable);

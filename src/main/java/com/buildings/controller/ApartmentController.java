@@ -90,11 +90,12 @@ public class ApartmentController {
 
     @GetMapping("/search/filter")
     @Operation(
-            summary = "Lọc căn hộ",
-            description = "Tìm kiếm căn hộ theo building, tầng, trạng thái, số phòng ngủ"
+            summary = "Lọc căn hộ nâng cao",
+            description = "Tìm kiếm căn hộ theo building (bắt buộc), mã căn hộ, tầng, trạng thái, số phòng ngủ"
     )
     public ResponseEntity<ApiResponse<Page<ApartmentResponse>>> filterApartments(
             @RequestParam UUID buildingId,
+            @RequestParam(required = false) String code, // Nhận từ Frontend
             @RequestParam(required = false) Integer floorNumber,
             @RequestParam(required = false) ApartmentStatus status,
             @RequestParam(required = false) Integer bedroomCount,
@@ -103,7 +104,7 @@ public class ApartmentController {
         return ResponseEntity.ok(
                 ApiResponse.<Page<ApartmentResponse>>builder()
                         .result(apartmentService.searchWithFilters(
-                                buildingId, floorNumber, status, bedroomCount, pageable))
+                                buildingId, code, floorNumber, status, bedroomCount, pageable))
                         .message("Filter apartments successfully")
                         .build()
         );

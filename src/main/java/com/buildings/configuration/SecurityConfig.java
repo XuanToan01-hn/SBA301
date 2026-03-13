@@ -25,13 +25,20 @@ public class SecurityConfig {
     private final CustomJwtDecoder customJwtDecoder;
 
     private final String[] PUBLIC_ENDPOINTS = {
-            "/api/auth/signin", "/api/auth/signup", "/auth/token", "/auth/logout", "/auth/refresh"
+            "/api/auth/signin",
+            "/api/auth/signup",
+            "/auth/token",
+            "/auth/logout",
+            "/auth/refresh",
+            "/swagger-ui/**",
+            "/v3/api-docs/**",
+            "/swagger-ui.html"
     };
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // THÊM DÒNG NÀY
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
@@ -60,7 +67,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+        configuration.setAllowedOrigins(List.of("http://localhost:5173","http://localhost:5174"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept"));
         configuration.setAllowCredentials(true);

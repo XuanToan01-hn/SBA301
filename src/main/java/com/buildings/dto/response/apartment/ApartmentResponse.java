@@ -1,9 +1,11 @@
 package com.buildings.dto.response.apartment;
 
+import com.buildings.dto.response.apartment_resident.ApartmentResidentResponse;
 import com.buildings.entity.enums.ApartmentStatus;
 import lombok.Builder;
 import lombok.Data;
 
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -19,4 +21,5 @@ public class ApartmentResponse {
 
     private String buildingName;
     private UUID buildingId;
+    private List<ApartmentResidentResponse> residents;
 }
