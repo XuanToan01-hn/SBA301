@@ -48,7 +48,7 @@ public enum ErrorCode {
     FILE_NOT_FOUND(5002, "File not found", HttpStatus.NOT_FOUND),
     FILE_TYPE_NOT_ALLOWED(5003, "File type not allowed", HttpStatus.BAD_REQUEST),
     FILE_SIZE_EXCEEDED(5004, "File size exceeded the limit", HttpStatus.BAD_REQUEST),
-    ;
+    
     ;
 
     ErrorCode(int code, String message, HttpStatus statusCode) {
