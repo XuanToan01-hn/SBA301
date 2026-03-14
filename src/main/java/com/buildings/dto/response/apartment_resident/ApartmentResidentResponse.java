@@ -16,7 +16,9 @@ public class ApartmentResidentResponse {
     private String apartmentCode;
     private UUID userId;
     private String fullName;
-    private ResidentType residentType;
+    private String email;
+    private String phone;
+    private String residentType;
     private LocalDateTime assignedAt;
     private boolean isCurrent;
 }

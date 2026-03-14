@@ -19,6 +19,13 @@ import java.util.Optional;
 @Repository
 public interface ApartmentRepository extends JpaRepository<Apartment, UUID> {
 
+    @Query("SELECT a FROM Apartment a " +
+            "LEFT JOIN FETCH a.building " +
+            "LEFT JOIN FETCH a.residents r " +
+            "LEFT JOIN FETCH r.user " +
+            "WHERE a.id = :id")
+    Optional<Apartment> findByIdFullInfo(@Param("id") UUID id);
+
     List<Apartment> findByBuildingIdOrderByFloorNumberAscCodeAsc(UUID buildingId);
 
     Page<Apartment> findByBuildingId(UUID buildingId, Pageable pageable);
@@ -38,11 +45,13 @@ public interface ApartmentRepository extends JpaRepository<Apartment, UUID> {
     Long countByBuildingIdAndStatus(UUID buildingId, ApartmentStatus status);
 
     @Query("SELECT a FROM Apartment a WHERE a.building.id = :buildingId " +
+            "AND (:code IS NULL OR a.code LIKE %:code%) " + // Thêm dòng này
             "AND (:floorNumber IS NULL OR a.floorNumber = :floorNumber) " +
             "AND (:status IS NULL OR a.status = :status) " +
             "AND (:bedroomCount IS NULL OR a.bedroomCount = :bedroomCount)")
     Page<Apartment> findWithFilters(
             @Param("buildingId") UUID buildingId,
+            @Param("code") String code,         // Tham số mới
             @Param("floorNumber") Integer floorNumber,
             @Param("status") ApartmentStatus status,
             @Param("bedroomCount") Integer bedroomCount,

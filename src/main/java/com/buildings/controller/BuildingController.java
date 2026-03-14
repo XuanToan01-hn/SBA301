@@ -92,31 +92,7 @@ public class BuildingController {
                 .build();
     }
 
-    @GetMapping("/all")
-    @Operation(summary = "Danh sách tất cả tòa nhà", description = "Lấy toàn bộ danh sách tòa nhà không phân trang")
-    public ApiResponse<List<BuildingDTO>> getAllBuildingsNoPagination() {
-        return ApiResponse.<List<BuildingDTO>>builder()
-                .result(buildingService.getAllBuildings())
-                .build();
-    }
 
-    @GetMapping("/without-apartments")
-    @Operation(summary = "Danh sách tòa nhà chưa tạo căn hộ", description = "Lấy các tòa nhà chưa được generate apartments")
-    public ApiResponse<Map<String, Object>> getBuildingsWithoutApartments(
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ApiResponse.<Map<String, Object>>builder()
-                .result(wrapPagination(buildingService.getBuildingsWithoutGeneratedApartments(pageable)))
-                .build();
-    }
-
-    @GetMapping("/with-apartments")
-    @Operation(summary = "Danh sách tòa nhà đã tạo căn hộ", description = "Lấy các tòa nhà đã generate apartments")
-    public ApiResponse<Map<String, Object>> getBuildingsWithApartments(
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ApiResponse.<Map<String, Object>>builder()
-                .result(wrapPagination(buildingService.getBuildingsWithGeneratedApartments(pageable)))
-                .build();
-    }
 
     @GetMapping("/check-code/{code}")
     @Operation(summary = "Kiểm tra mã tòa nhà", description = "Kiểm tra mã tòa nhà đã tồn tại hay chưa")
