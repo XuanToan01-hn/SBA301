@@ -43,6 +43,13 @@ public enum ErrorCode {
     INVALID_METER_INDEX(3003, "New index must be greater than or equal to old index", HttpStatus.BAD_REQUEST),
     DUPLICATE_METER_READING(3004, "Meter reading already exists for this apartment, service and period",
             HttpStatus.BAD_REQUEST),
+    // Payment errors (4xxx)
+    BILL_NOT_FOUND(4001, "Bill not found", HttpStatus.NOT_FOUND),
+    PAYMENT_TRANSACTION_NOT_FOUND(4002, "Payment transaction not found", HttpStatus.NOT_FOUND),
+    PAYMENT_CREATION_FAILED(4003, "Failed to create payment link", HttpStatus.INTERNAL_SERVER_ERROR),
+    PAYMENT_SYNC_FAILED(4004, "Failed to sync payment status from PayOS", HttpStatus.INTERNAL_SERVER_ERROR),
+    PAYMENT_ALREADY_PROCESSED(4005, "Payment transaction has already been processed", HttpStatus.BAD_REQUEST),
+
     // File errors (5xxx)
     FILE_UPLOAD_FAILED(5001, "Failed to upload file", HttpStatus.INTERNAL_SERVER_ERROR),
     FILE_NOT_FOUND(5002, "File not found", HttpStatus.NOT_FOUND),
