@@ -11,12 +11,8 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PaymentResponse {
-
+public class UploadProofResponse {
     private UUID transactionId;
-    private UUID billId;
-    private Long amount;
-    private String checkoutUrl;
-    private String qrCode;
-    private String rejectedReason;
+    private String proofUrl;
+    private String status;
 }
