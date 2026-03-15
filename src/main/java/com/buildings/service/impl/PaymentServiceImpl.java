@@ -1,9 +1,14 @@
 package com.buildings.service.impl;
 
+import com.buildings.dto.PageResponse;
 import com.buildings.dto.request.payment.PaymentWebhookDTO;
 import com.buildings.dto.response.payment.PaymentResponse;
 import com.buildings.dto.response.payment.PaymentStatisticsDTO;
 import com.buildings.dto.response.payment.PaymentTransactionDTO;
+import com.buildings.dto.response.payment.PaymentTransactionDetailDTO;
+import com.buildings.dto.response.payment.UploadProofResponse;
+import com.buildings.entity.ApartmentResident;
+import com.buildings.entity.BillDetail;
 import com.buildings.entity.MonthlyBills;
 import com.buildings.entity.PaymentTransaction;
 import com.buildings.entity.User;
@@ -14,16 +19,19 @@ import com.buildings.mapper.PaymentTransactionMapper;
 import com.buildings.repository.MonthlyBillsRepository;
 import com.buildings.repository.PaymentTransactionRepository;
 import com.buildings.repository.UserRepository;
+import com.buildings.service.FileStorageService;
 import com.buildings.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import vn.payos.PayOS;
 import vn.payos.model.v2.paymentRequests.CreatePaymentLinkRequest;
 import vn.payos.model.v2.paymentRequests.CreatePaymentLinkResponse;
@@ -32,8 +40,10 @@ import vn.payos.model.v2.paymentRequests.PaymentLinkItem;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -47,6 +57,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final PaymentTransactionMapper paymentTransactionMapper;
     private final UserRepository userRepository;
+    private final FileStorageService fileStorageService;
 
     @Value("${app.payment.return-url:http://localhost:5173/payment-success}")
     private String returnUrl;
@@ -67,11 +78,19 @@ public class PaymentServiceImpl implements PaymentService {
         if (existingPending.isPresent()) {
             PaymentTransaction existing = existingPending.get();
             log.info("Bill {} already has a PENDING transaction, returning existing checkout URL", billId);
+
+            String lastRejectedReason = paymentTransactionRepository
+                    .findFirstByBillIdAndStatusOrderByCreatedAtDesc(billId, PaymentTransactionStatus.CANCELLED)
+                    .map(PaymentTransaction::getRejectedReason)
+                    .orElse(null);
+
             return PaymentResponse.builder()
+                    .transactionId(existing.getId())
                     .billId(billId)
                     .amount(existing.getAmount().longValue())
                     .checkoutUrl(existing.getCheckoutUrl())
                     .qrCode(existing.getQrCode())
+                    .rejectedReason(lastRejectedReason)
                     .build();
         }
 
@@ -116,11 +135,19 @@ public class PaymentServiceImpl implements PaymentService {
         paymentTransactionRepository.save(transaction);
         log.info("Created new PayOS payment for bill {}, orderCode {}", billId, orderCode);
 
+        // Lấy rejectedReason từ lần bị từ chối gần nhất (nếu có) để frontend hiển thị
+        String lastRejectedReason = paymentTransactionRepository
+                .findFirstByBillIdAndStatusOrderByCreatedAtDesc(billId, PaymentTransactionStatus.CANCELLED)
+                .map(PaymentTransaction::getRejectedReason)
+                .orElse(null);
+
         return PaymentResponse.builder()
+                .transactionId(transaction.getId())
                 .billId(billId)
                 .amount(amount)
                 .checkoutUrl(payosResponse.getCheckoutUrl())
                 .qrCode(payosResponse.getQrCode())
+                .rejectedReason(lastRejectedReason)
                 .build();
     }
 
@@ -154,8 +181,8 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional(readOnly = true)
     public Page<PaymentTransactionDTO> getTransactionHistory(int page, int size,
-                                                              PaymentTransactionStatus status,
-                                                              UUID billId) {
+                                                                     PaymentTransactionStatus status,
+                                                                     UUID billId) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         return paymentTransactionRepository
                 .findAllWithFilters(status, billId, pageable)
@@ -260,6 +287,125 @@ public class PaymentServiceImpl implements PaymentService {
                 .build();
     }
 
+    // ===================== UPLOAD BẰNG CHỨNG =====================
+
+    private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of(
+            "image/jpeg", "image/jpg", "image/png"
+    );
+    private static final long MAX_PROOF_SIZE = 5 * 1024 * 1024; // 5MB
+
+    @Override
+    @Transactional
+    public UploadProofResponse uploadProof(UUID transactionId, UUID userId, MultipartFile file) {
+        // Validate file
+        if (file == null || file.isEmpty()) {
+            throw new AppException(ErrorCode.FILE_UPLOAD_FAILED);
+        }
+        if (!ALLOWED_IMAGE_TYPES.contains(file.getContentType())) {
+            throw new AppException(ErrorCode.FILE_TYPE_NOT_ALLOWED);
+        }
+        if (file.getSize() > MAX_PROOF_SIZE) {
+            throw new AppException(ErrorCode.FILE_SIZE_EXCEEDED);
+        }
+
+        PaymentTransaction transaction = paymentTransactionRepository.findById(transactionId)
+                .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_TRANSACTION_NOT_FOUND));
+
+        try {
+            String objectName = fileStorageService.uploadFile(file, "payment-proofs");
+            String proofUrl = fileStorageService.getFileUrl(objectName);
+
+            transaction.setProofUrl(proofUrl);
+            paymentTransactionRepository.save(transaction);
+
+            log.info("Proof uploaded for transaction {}, url: {}", transactionId, proofUrl);
+
+            return UploadProofResponse.builder()
+                    .transactionId(transactionId)
+                    .proofUrl(proofUrl)
+                    .status(transaction.getStatus().name())
+                    .build();
+
+        } catch (AppException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to upload proof for transaction {}: {}", transactionId, e.getMessage());
+            throw new AppException(ErrorCode.FILE_UPLOAD_FAILED);
+        }
+    }
+
+    // ===================== ADMIN DUYỆT / TỪ CHỐI =====================
+
+    @Override
+    @Transactional
+    public PaymentTransactionDetailDTO approveTransaction(UUID transactionId, UUID adminId) {
+        PaymentTransaction transaction = paymentTransactionRepository.findById(transactionId)
+                .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_TRANSACTION_NOT_FOUND));
+
+        if (transaction.getStatus() != PaymentTransactionStatus.PENDING || transaction.getProofUrl() == null) {
+            throw new AppException(ErrorCode.TRANSACTION_NOT_AWAITING_PROOF);
+        }
+
+        User admin = userRepository.findById(adminId).orElse(null);
+
+        transaction.setStatus(PaymentTransactionStatus.SUCCESS);
+        transaction.setPaidAt(LocalDateTime.now());
+        transaction.setVerifiedAt(LocalDateTime.now());
+        transaction.setPostedBy(admin);
+        paymentTransactionRepository.save(transaction);
+
+        MonthlyBills bill = transaction.getBill();
+        bill.setStatus("PAID");
+        monthlyBillsRepository.save(bill);
+
+        log.info("Transaction {} approved by admin {}, bill {} marked PAID", transactionId, adminId, bill.getId());
+
+        return buildTransactionDetail(transaction);
+    }
+
+    @Override
+    @Transactional
+    public PaymentTransactionDetailDTO rejectTransaction(UUID transactionId, String reason, UUID adminId) {
+        PaymentTransaction transaction = paymentTransactionRepository.findById(transactionId)
+                .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_TRANSACTION_NOT_FOUND));
+
+        if (transaction.getStatus() != PaymentTransactionStatus.PENDING || transaction.getProofUrl() == null) {
+            throw new AppException(ErrorCode.TRANSACTION_NOT_AWAITING_PROOF);
+        }
+
+        transaction.setStatus(PaymentTransactionStatus.CANCELLED);
+        transaction.setRejectedReason(reason);
+        transaction.setVerifiedAt(LocalDateTime.now());
+        paymentTransactionRepository.save(transaction);
+
+        log.info("Transaction {} rejected by admin {}, reason: {}", transactionId, adminId, reason);
+
+        return buildTransactionDetail(transaction);
+    }
+
+    // ===================== CHI TIẾT GIAO DỊCH =====================
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaymentTransactionDetailDTO getTransactionDetail(UUID transactionId) {
+        PaymentTransaction transaction = paymentTransactionRepository.findById(transactionId)
+                .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_TRANSACTION_NOT_FOUND));
+        return buildTransactionDetail(transaction);
+    }
+
+    // ===================== DANH SÁCH CHỜ DUYỆT =====================
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PaymentTransactionDetailDTO> getPendingProofTransactions(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<PaymentTransaction> transactions = paymentTransactionRepository.findPendingWithProof(pageable);
+        List<PaymentTransactionDetailDTO> dtos = transactions.getContent().stream()
+                .map(this::buildTransactionDetail)
+                .collect(Collectors.toList());
+        return new PageImpl<>(dtos, pageable, transactions.getTotalElements());
+    }
+
     // ===================== HELPER =====================
 
     private void markTransactionSuccess(PaymentTransaction transaction) {
@@ -270,5 +416,76 @@ public class PaymentServiceImpl implements PaymentService {
         MonthlyBills bill = transaction.getBill();
         bill.setStatus("PAID");
         monthlyBillsRepository.save(bill);
+    }
+
+    private PaymentTransactionDetailDTO buildTransactionDetail(PaymentTransaction tx) {
+        MonthlyBills bill = tx.getBill();
+
+        // Bill items
+        List<PaymentTransactionDetailDTO.BillItemInfo> items = bill.getDetails() != null
+                ? bill.getDetails().stream()
+                        .map(d -> PaymentTransactionDetailDTO.BillItemInfo.builder()
+                                .name(d.getDescription())
+                                .amount(d.getTotalLine())
+                                .build())
+                        .collect(Collectors.toList())
+                : List.of();
+
+        // Month/Year từ periodFrom
+        Integer month = bill.getPeriodFrom() != null ? bill.getPeriodFrom().getMonthValue() : null;
+        Integer year  = bill.getPeriodFrom() != null ? bill.getPeriodFrom().getYear() : null;
+
+        PaymentTransactionDetailDTO.BillInfo billInfo = PaymentTransactionDetailDTO.BillInfo.builder()
+                .billId(bill.getId())
+                .month(month)
+                .year(year)
+                .totalAmount(bill.getTotalAmount())
+                .dueDate(bill.getDueDate())
+                .status(bill.getStatus())
+                .items(items)
+                .build();
+
+        // Resident: lấy cư dân đang ở (movedOutAt == null)
+        PaymentTransactionDetailDTO.ResidentInfo residentInfo = null;
+        if (bill.getApartment() != null && bill.getApartment().getResidents() != null) {
+            residentInfo = bill.getApartment().getResidents().stream()
+                    .filter(r -> r.getMovedOutAt() == null)
+                    .findFirst()
+                    .map(r -> PaymentTransactionDetailDTO.ResidentInfo.builder()
+                            .userId(r.getUser().getId())
+                            .fullName(r.getUser().getFullName())
+                            .email(r.getUser().getEmail())
+                            .phone(r.getUser().getPhone())
+                            .build())
+                    .orElse(null);
+        }
+
+        // Apartment
+        PaymentTransactionDetailDTO.ApartmentInfo apartmentInfo = null;
+        if (bill.getApartment() != null) {
+            apartmentInfo = PaymentTransactionDetailDTO.ApartmentInfo.builder()
+                    .apartmentId(bill.getApartment().getId())
+                    .roomNumber(bill.getApartment().getCode())
+                    .floor(bill.getApartment().getFloorNumber())
+                    .building(bill.getApartment().getBuilding() != null
+                            ? bill.getApartment().getBuilding().getName() : null)
+                    .build();
+        }
+
+        return PaymentTransactionDetailDTO.builder()
+                .transactionId(tx.getId())
+                .orderCode(tx.getOrderCode())
+                .amount(tx.getAmount())
+                .currency(tx.getCurrency())
+                .status(tx.getStatus().name())
+                .proofUrl(tx.getProofUrl())
+                .createdAt(tx.getCreatedAt())
+                .paidAt(tx.getPaidAt())
+                .verifiedAt(tx.getVerifiedAt())
+                .rejectedReason(tx.getRejectedReason())
+                .bill(billInfo)
+                .resident(residentInfo)
+                .apartment(apartmentInfo)
+                .build();
     }
 }

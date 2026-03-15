@@ -26,9 +26,7 @@ public class SecurityConfig {
 
     private final String[] PUBLIC_ENDPOINTS = {
             "/api/auth/signin", "/api/auth/signup", "/auth/token", "/auth/logout", "/auth/refresh",
-            "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html"
-            "/api/auth/signin", "/api/auth/signup", "/auth/token", "/auth/logout", "/auth/refresh",
-            "/api/payments/payos-webhook", "/api/payments/statistics", "/api/payments/transactions"
+            "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/api/payments/payos-webhook"
     };
 
     @Bean

@@ -48,4 +48,8 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
                    "GROUP BY month ORDER BY month DESC LIMIT 12",
            nativeQuery = true)
     List<Object[]> getMonthlyRevenueSummary();
+
+    // Danh sách PENDING có proof (chờ admin duyệt)
+    @Query("SELECT t FROM PaymentTransaction t WHERE t.status = 'PENDING' AND t.proofUrl IS NOT NULL")
+    Page<PaymentTransaction> findPendingWithProof(Pageable pageable);
 }

@@ -49,6 +49,9 @@ public enum ErrorCode {
     PAYMENT_CREATION_FAILED(4003, "Failed to create payment link", HttpStatus.INTERNAL_SERVER_ERROR),
     PAYMENT_SYNC_FAILED(4004, "Failed to sync payment status from PayOS", HttpStatus.INTERNAL_SERVER_ERROR),
     PAYMENT_ALREADY_PROCESSED(4005, "Payment transaction has already been processed", HttpStatus.BAD_REQUEST),
+    PROOF_UPLOAD_NOT_AUTHORIZED(4006, "Only the apartment resident can upload payment proof", HttpStatus.FORBIDDEN),
+    INVALID_TRANSACTION_FOR_PROOF(4007, "Transaction must be in PENDING status to upload proof", HttpStatus.BAD_REQUEST),
+    TRANSACTION_NOT_AWAITING_PROOF(4008, "Transaction has no proof uploaded yet", HttpStatus.BAD_REQUEST),
 
     // File errors (5xxx)
     FILE_UPLOAD_FAILED(5001, "Failed to upload file", HttpStatus.INTERNAL_SERVER_ERROR),

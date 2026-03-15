@@ -1,16 +1,25 @@
 package com.buildings.controller;
 
 import com.buildings.dto.ApiResponse;
+import com.buildings.dto.PageResponse;
+import com.buildings.dto.request.payment.RejectTransactionRequest;
 import com.buildings.dto.response.payment.PaymentResponse;
 import com.buildings.dto.response.payment.PaymentStatisticsDTO;
 import com.buildings.dto.response.payment.PaymentTransactionDTO;
+import com.buildings.dto.response.payment.PaymentTransactionDetailDTO;
+import com.buildings.dto.response.payment.UploadProofResponse;
+import com.buildings.entity.User;
 import com.buildings.entity.enums.PaymentTransactionStatus;
+import com.buildings.repository.UserRepository;
 import com.buildings.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -19,6 +28,7 @@ import java.util.UUID;
 public class PaymentController {
 
     private final PaymentService paymentService;
+    private final UserRepository userRepository;
 
     // Tạo payment link
     @PostMapping("/{billId}")
@@ -56,7 +66,8 @@ public class PaymentController {
     public ApiResponse<PaymentTransactionDTO> manualConfirm(
             @PathVariable UUID transactionId,
             Authentication authentication) {
-        UUID adminId = UUID.fromString(authentication.getName());
+        Optional<User> user = userRepository.findByEmail(authentication.getName());
+        UUID adminId = user.get().getId();
         return ApiResponse.<PaymentTransactionDTO>builder()
                 .result(paymentService.manualConfirm(transactionId, adminId))
                 .build();
@@ -68,6 +79,74 @@ public class PaymentController {
     public ApiResponse<PaymentStatisticsDTO> getStatistics() {
         return ApiResponse.<PaymentStatisticsDTO>builder()
                 .result(paymentService.getStatistics())
+                .build();
+    }
+
+    // Resident upload bằng chứng thanh toán
+    // POST /api/payments/transactions/{transactionId}/proof
+    @PostMapping("/transactions/{transactionId}/proof")
+    public ApiResponse<UploadProofResponse> uploadProof(
+            @PathVariable UUID transactionId,
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication) {
+        Optional<User> user = userRepository.findByEmail(authentication.getName());
+        UUID userId = user.get().getId();
+        return ApiResponse.<UploadProofResponse>builder()
+                .result(paymentService.uploadProof(transactionId, userId, file))
+                .build();
+    }
+
+    // ===================== ADMIN ENDPOINTS =====================
+
+    // Danh sách giao dịch PENDING có bằng chứng, chờ admin duyệt
+    // GET /api/payments/admin/pending-proof?page=0&size=20
+    @GetMapping("/admin/pending-proof")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<Page<PaymentTransactionDetailDTO>> getPendingProofTransactions(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ApiResponse.<Page<PaymentTransactionDetailDTO>>builder()
+                .result(paymentService.getPendingProofTransactions(page, size))
+                .build();
+    }
+
+    // Chi tiết đầy đủ 1 giao dịch (bill, cư dân, căn hộ, ảnh bằng chứng)
+    // GET /api/payments/admin/transactions/{transactionId}/detail
+    @GetMapping("/admin/transactions/{transactionId}/detail")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<PaymentTransactionDetailDTO> getTransactionDetail(
+            @PathVariable UUID transactionId) {
+        return ApiResponse.<PaymentTransactionDetailDTO>builder()
+                .result(paymentService.getTransactionDetail(transactionId))
+                .build();
+    }
+
+    // Admin duyệt giao dịch → SUCCESS, bill → PAID
+    // POST /api/payments/admin/transactions/{transactionId}/approve
+    @PostMapping("/admin/transactions/{transactionId}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<PaymentTransactionDetailDTO> approveTransaction(
+            @PathVariable UUID transactionId,
+            Authentication authentication) {
+        Optional<User> user =  userRepository.findByEmail(authentication.getName());
+        UUID adminId = user.get().getId();
+        return ApiResponse.<PaymentTransactionDetailDTO>builder()
+                .result(paymentService.approveTransaction(transactionId, adminId))
+                .build();
+    }
+
+    // Admin từ chối giao dịch → CANCELLED, lưu lý do
+    // POST /api/payments/admin/transactions/{transactionId}/reject
+    @PostMapping("/admin/transactions/{transactionId}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<PaymentTransactionDetailDTO> rejectTransaction(
+            @PathVariable UUID transactionId,
+            @RequestBody RejectTransactionRequest request,
+            Authentication authentication) {
+        Optional<User> user = userRepository.findByEmail(authentication.getName());
+        UUID adminId = user.get().getId();
+        return ApiResponse.<PaymentTransactionDetailDTO>builder()
+                .result(paymentService.rejectTransaction(transactionId, request.getReason(), adminId))
                 .build();
     }
 }
