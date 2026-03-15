@@ -32,16 +32,6 @@ public interface ApartmentRepository extends JpaRepository<Apartment, UUID> {
 
     Page<Apartment> findByBuildingId(UUID buildingId, Pageable pageable);
 
-    Optional<Apartment> findByBuildingIdAndCode(UUID buildingId, String code);
-
-    boolean existsByBuildingIdAndCode(UUID buildingId, String code);
-
-    List<Apartment> findByBuildingIdAndFloorNumber(UUID buildingId, Integer floorNumber);
-
-    Page<Apartment> findByBuildingIdAndStatus(UUID buildingId, ApartmentStatus status, Pageable pageable);
-
-    Page<Apartment> findByBuildingIdAndBedroomCount(UUID buildingId, Integer bedroomCount, Pageable pageable);
-
     Long countByBuildingId(UUID buildingId);
 
     Long countByBuildingIdAndStatus(UUID buildingId, ApartmentStatus status);
@@ -67,12 +57,6 @@ public interface ApartmentRepository extends JpaRepository<Apartment, UUID> {
             "AND r.movedOutAt IS NULL")
     Page<Apartment> findApartmentsWithOwner(@Param("buildingId") UUID buildingId, Pageable pageable);
 
-    @Query("SELECT a FROM Apartment a WHERE a.building.id = :buildingId " +
-            "AND NOT EXISTS (SELECT 1 FROM ApartmentResident r " +
-            "WHERE r.apartment.id = a.id AND r.residentType = 'OWNER' AND r.movedOutAt IS NULL)")
-    Page<Apartment> findApartmentsWithoutOwner(@Param("buildingId") UUID buildingId, Pageable pageable);
-
-    void deleteByBuildingId(UUID buildingId);
 
     List<Apartment> findByStatus(ApartmentStatus status);
     @Query("SELECT DISTINCT a FROM Apartment a " +

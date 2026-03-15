@@ -26,28 +26,17 @@ public interface BuildingRepository extends JpaRepository<Building, UUID> {
             @Param("apartmentsGenerated") Boolean apartmentsGenerated,
             Pageable pageable
     );
-    Optional<Building> findByCode(String code);
-
-    Optional<Building> findByName(String name);
 
     boolean existsByCode(String code);
 
     boolean existsByName(String name);
 
-    @Query("SELECT CASE WHEN COUNT(b) > 0 THEN true ELSE false END FROM Building b WHERE b.code = :code AND b.id != :id")
-    boolean existsByCodeAndIdNot(@Param("code") String code, @Param("id") Long id);
-
-    @Query("SELECT CASE WHEN COUNT(b) > 0 THEN true ELSE false END FROM Building b WHERE b.name = :name AND b.id != :id")
-    boolean existsByNameAndIdNot(@Param("name") String name, @Param("id") Long id);
 
     @Query("SELECT b FROM Building b WHERE " +
             "LOWER(b.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(b.code) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(b.address) LIKE LOWER(CONCAT('%', :search, '%'))")
     Page<Building> findAllWithSearch(@Param("search") String search, Pageable pageable);
-
-    @Query("SELECT COUNT(a) FROM Apartment a WHERE a.building.id = :buildingId")
-    Long countApartmentsByBuildingId(@Param("buildingId") Long buildingId);
 
     @Query("SELECT b FROM Building b WHERE b.apartmentsGenerated = true")
     Page<Building> findBuildingsWithGeneratedApartments(Pageable pageable);
