@@ -7,6 +7,7 @@ import com.buildings.entity.Apartment;
 import com.buildings.entity.ApartmentResident;
 import com.buildings.entity.User;
 import com.buildings.entity.enums.ApartmentStatus;
+import com.buildings.entity.enums.ResidentType;
 import com.buildings.exception.AppException;
 import com.buildings.exception.ErrorCode;
 import com.buildings.mapper.ApartmentMapper;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -49,33 +51,26 @@ public class ApartmentServiceImpl implements AparmentService {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
 
+        int maxOccupants = (apartment.getBedroomCount() * 2) + 2;
+        if (apartment.getCurrentResidentsCount() >= maxOccupants) {
+            throw new AppException(ErrorCode.APARTMENT_FULL, "Apartment full. Maximum residents: " + maxOccupants);
+        }
         ApartmentResident resident = ApartmentResident.builder()
                 .apartment(apartment)
                 .user(user)
                 .residentType(request.getResidentType())
                 .idCardNumber(request.getIdCardNumber())
-                .contractDetails(request.getContractDetails())
-                .ownershipCertificate(request.getOwnershipCertificate())
-                .legalDocs(request.getLegalDocs())
-                .note(request.getNote())
                 .assignedAt(LocalDateTime.now())
                 .build();
 
         residentRepository.save(resident);
 
-        apartment.setStatus(ApartmentStatus.OCCUPIED);
-        apartmentRepository.save(apartment);
+        if (apartment.getStatus() != ApartmentStatus.OCCUPIED) {
+            apartment.setStatus(ApartmentStatus.OCCUPIED);
+            apartmentRepository.save(apartment);
+        }
 
-        return ApartmentResidentResponse.builder()
-                .id(resident.getId())
-                .apartmentId(apartment.getId())
-                .apartmentCode(apartment.getCode())
-                .userId(user.getId())
-                .fullName(user.getFullName())
-                .residentType(resident.getResidentType().name())
-                .assignedAt(resident.getAssignedAt())
-                .isCurrent(true) // Gán là true vì đây là cư dân đang hoạt động (movedOutAt is null)
-                .build();
+        return mapToResidentResponse(resident);
     }
     @Override
     public List<ApartmentResponse> getAllApartments() {
@@ -203,6 +198,50 @@ public class ApartmentServiceImpl implements AparmentService {
                 .buildingName(apartment.getBuilding() != null ? apartment.getBuilding().getName() : "N/A")
                 .residents(residentDtos) // Nhét list cư dân đã map vào đây
                 .build();
+    }
+
+    @Transactional
+    public void moveOut(UUID residentId) {
+        ApartmentResident resident = residentRepository.findById(residentId)
+                .orElseThrow(() -> new AppException(ErrorCode.RESIDENT_NOT_FOUND));
+//        if (resident.getMovedOutAt() != null) {
+//            throw new AppException(ErrorCode.ALREADY_MOVED_OUT);
+//        }
+        resident.setMovedOutAt(LocalDateTime.now());
+        residentRepository.save(resident);
+
+        // 4. KIỂM TRA TRẠNG THÁI CĂN HỘ
+        // Nếu sau khi người này đi, không còn ai ở (active residents = 0), chuyển status về AVAILABLE
+        Apartment apartment = resident.getApartment();
+        long activeCount = apartment.getResidents().stream()
+                .filter(r -> r.getMovedOutAt() == null)
+                .count();
+
+        if (activeCount == 0) {
+            apartment.setStatus(ApartmentStatus.AVAILABLE);
+            apartmentRepository.save(apartment);
+        }
+    }
+
+    // Trong ApartmentServiceImpl.java
+
+    // Trong ApartmentServiceImpl.java
+
+
+
+    @Override
+    public Page<ApartmentResidentResponse> getResidencyHistory(UUID apartmentId, ResidentType type, Pageable pageable) {
+        // 1. Kiểm tra căn hộ có tồn tại không
+        if (!apartmentRepository.existsById(apartmentId)) {
+            throw new AppException(ErrorCode.APARTMENT_NOT_FOUND);
+        }
+
+        // 2. Gọi Repo để lấy dữ liệu phân trang từ bảng apartment_residents
+        // Lưu ý: Pageable từ Frontend sẽ chứa thông tin page, size và sort (ví dụ: assignedAt,desc)
+        Page<ApartmentResident> residentPage = residentRepository.findHistoryByApartmentId(apartmentId, type, pageable);
+
+        // 3. Map kết quả sang DTO Response sử dụng hàm mapToResidentResponse bạn đã viết
+        return residentPage.map(this::mapToResidentResponse);
     }
 
     private ApartmentResidentResponse mapToResidentResponse(ApartmentResident resident) {

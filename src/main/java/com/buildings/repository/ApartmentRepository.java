@@ -1,7 +1,9 @@
 package com.buildings.repository;
 
 import com.buildings.entity.Apartment;
+import com.buildings.entity.ApartmentResident;
 import com.buildings.entity.enums.ApartmentStatus;
+import com.buildings.entity.enums.ResidentType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -79,4 +81,11 @@ public interface ApartmentRepository extends JpaRepository<Apartment, UUID> {
             "WHERE r.user.email = :email " +
             "AND r.movedOutAt IS NULL")
     List<Apartment> findByResidentEmail(@Param("email") String email);
+
+    @Query("SELECT r FROM ApartmentResident r WHERE r.apartment.id = :apartmentId " +
+            "AND (:type IS NULL OR r.residentType = :type)")
+    Page<ApartmentResident> findHistoryByApartmentId(
+            @Param("apartmentId") UUID apartmentId,
+            @Param("type") ResidentType type,
+            Pageable pageable);
 }

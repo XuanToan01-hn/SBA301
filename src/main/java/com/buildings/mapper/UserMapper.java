@@ -1,12 +1,12 @@
 package com.buildings.mapper;
 
 import com.buildings.dto.request.user.UserCreateRequest;
+import com.buildings.dto.request.user.UserUpdateRequest;
 import com.buildings.dto.response.user.UserResponse;
 import com.buildings.dto.response.user.UserRoleResponse;
 import com.buildings.entity.User;
 import com.buildings.entity.UserRole;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
+import org.mapstruct.*;
 
 
 @Mapper(componentModel = "spring")
@@ -21,4 +21,7 @@ public interface UserMapper {
     @Mapping(source = "building.id", target = "buildingId")
     @Mapping(source = "building.name", target = "buildingName")
     UserRoleResponse toUserRoleResponse(UserRole userRole);
+
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    void updateUser(@MappingTarget User user, UserUpdateRequest request);
 }

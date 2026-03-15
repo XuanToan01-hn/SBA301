@@ -148,11 +148,34 @@ public class ApartmentController {
         );
     }
     @PostMapping("/assign-resident")
-    public ApiResponse<ApartmentResidentResponse> assign(@RequestBody ApartmentResidentRequest request) {
-        return ApiResponse.<ApartmentResidentResponse>builder()
-                .result(apartmentService.assignResident(request))
-                .build();
+    @Operation(
+            summary = "Gán cư dân vào căn hộ",
+            description = "Thêm người vào căn hộ. Sẽ tự động kiểm tra giới hạn người ở và cập nhật trạng thái căn hộ."
+    )
+    public ResponseEntity<ApiResponse<ApartmentResidentResponse>> assign(
+            @RequestBody ApartmentResidentRequest request) {
+        return ResponseEntity.ok(
+                ApiResponse.<ApartmentResidentResponse>builder()
+                        .result(apartmentService.assignResident(request))
+                        .message("Resident assigned to apartment successfully")
+                        .build()
+        );
     }
+
+    @PostMapping("/resident/{residentId}/move-out")
+    @Operation(
+            summary = "Cư dân rời khỏi căn hộ",
+            description = "Đánh dấu ngày rời đi cho cư dân. Nếu căn hộ không còn ai, trạng thái sẽ chuyển về AVAILABLE."
+    )
+    public ResponseEntity<ApiResponse<Void>> moveOut(@PathVariable UUID residentId) {
+        apartmentService.moveOut(residentId);
+        return ResponseEntity.ok(
+                ApiResponse.<Void>builder()
+                        .message("Resident moved out successfully")
+                        .build()
+        );
+    }
+
 
     @GetMapping("/resident/{email}")
     public ResponseEntity<ApiResponse<List<ApartmentResponse>>> getByResidentEmail(
@@ -161,6 +184,24 @@ public class ApartmentController {
                 ApiResponse.<List<ApartmentResponse>>builder()
                         .result(apartmentService.getApartmentsByResidentEmail(email))
                         .message("Get apartments by resident email successfully")
+                        .build()
+        );
+    }
+
+    @GetMapping("/{apartmentId}/history")
+    @Operation(
+            summary = "Lịch sử cư trú căn hộ",
+            description = "Lấy danh sách phân trang tất cả người đã và đang ở. VD: ?page=0&size=10&sort=assignedAt,desc&type=OWNER"
+    )
+    public ResponseEntity<ApiResponse<Page<ApartmentResidentResponse>>> getHistory(
+            @PathVariable UUID apartmentId,
+            @RequestParam(required = false) com.buildings.entity.enums.ResidentType type,
+            Pageable pageable) {
+
+        return ResponseEntity.ok(
+                ApiResponse.<Page<ApartmentResidentResponse>>builder()
+                        .result(apartmentService.getResidencyHistory(apartmentId, type, pageable))
+                        .message("Get residency history successfully")
                         .build()
         );
     }

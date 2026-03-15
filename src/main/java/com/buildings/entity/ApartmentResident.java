@@ -78,13 +78,5 @@ public class ApartmentResident extends BaseEntity {
     }
 
 
-    @Transient
-    public boolean hasCompleteLegalDocs() {
-        if (residentType != ResidentType.OWNER) {
-            return true;
-        }
-        return contractDetails != null && !contractDetails.trim().isEmpty() &&
-                ownershipCertificate != null && !ownershipCertificate.trim().isEmpty();
-    }
 }
 

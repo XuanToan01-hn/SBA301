@@ -4,6 +4,7 @@ import com.buildings.dto.request.apartment_resident.ApartmentResidentRequest;
 import com.buildings.dto.response.apartment.ApartmentResponse;
 import com.buildings.dto.response.apartment_resident.ApartmentResidentResponse;
 import com.buildings.entity.enums.ApartmentStatus;
+import com.buildings.entity.enums.ResidentType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -14,7 +15,7 @@ public interface AparmentService {
 
     ApartmentResidentResponse assignResident(ApartmentResidentRequest request);
     ApartmentResponse getById(UUID apartmentId);
-
+    Page<ApartmentResidentResponse> getResidencyHistory(UUID apartmentId, ResidentType type, Pageable pageable);
     List<ApartmentResponse> getAllApartments();
 
     List<ApartmentResponse> getByBuildingId(UUID buildingId);
@@ -50,4 +51,6 @@ public interface AparmentService {
     List<ApartmentResponse> getApartmentsByResidentEmail(String email);
 
     void deleteByBuilding(UUID buildingId);
+
+    void moveOut(UUID residentId);
 }
