@@ -100,21 +100,6 @@ public class BuildingServiceImpl implements BuildingService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public Page<BuildingDTO> getAllBuildings(Pageable pageable) {
-        return buildingRepository.findAll(pageable)
-                .map(this::mapToDTOWithCount);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<BuildingDTO> searchBuildings(String search, Pageable pageable) {
-        String searchTerm = (search != null) ? search : "";
-        return buildingRepository.findAllWithSearch(searchTerm, pageable)
-                .map(this::mapToDTOWithCount);
-    }
-
-    @Override
     public void deleteBuilding(UUID id) {
         Building building = buildingRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.BUILDING_NOT_FOUND));
@@ -148,30 +133,6 @@ public class BuildingServiceImpl implements BuildingService {
         building.setApartmentsGenerated(true);
         buildingRepository.save(building);
     }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<BuildingDTO> getAllBuildings() {
-        return buildingRepository.findAll().stream()
-                .map(this::mapToDTOWithCount)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<BuildingDTO> getBuildingsWithoutGeneratedApartments(Pageable pageable) {
-        return buildingRepository.findBuildingsWithoutGeneratedApartments(pageable)
-                .map(this::mapToDTOWithCount);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<BuildingDTO> getBuildingsWithGeneratedApartments(Pageable pageable) {
-        return buildingRepository.findBuildingsWithGeneratedApartments(pageable)
-                .map(this::mapToDTOWithCount);
-    }
-
-    // --- Helper Methods ---
 
     private BuildingDTO mapToDTOWithCount(Building building) {
         long count = apartmentRepository.countByBuildingId(building.getId());

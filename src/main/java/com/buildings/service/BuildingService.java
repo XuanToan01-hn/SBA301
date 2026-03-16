@@ -20,10 +20,6 @@ public interface BuildingService {
 
     BuildingDTO getBuildingById(UUID id);
 
-    Page<BuildingDTO> getAllBuildings(Pageable pageable);
-
-    Page<BuildingDTO> searchBuildings(String search, Pageable pageable);
-
     void deleteBuilding(UUID id);
 
     void generateApartments(UUID buildingId);
@@ -35,12 +31,6 @@ public interface BuildingService {
     boolean buildingNameExists(String name);
 
     boolean buildingNameExistsExcluding(String name, UUID excludeId);
-
-    Page<BuildingDTO> getBuildingsWithoutGeneratedApartments(Pageable pageable);
-
-    Page<BuildingDTO> getBuildingsWithGeneratedApartments(Pageable pageable);
-
-    List<BuildingDTO> getAllBuildings();
 
     BuildingDTO getBuildingByResidentEmail(String email);
 }

@@ -28,6 +28,7 @@ public enum ErrorCode {
     ROLE_NOT_EXISTED(1017, "Role not existed", HttpStatus.NOT_FOUND),
     APARTMENT_FULL(1018, "Apartment full. Maximum residents: {max}", HttpStatus.BAD_REQUEST),
     RESIDENT_NOT_FOUND(1019, "Resident not found", HttpStatus.NOT_FOUND),
+    DEACTIVE(1020, "Acccount is deactive", HttpStatus.BAD_REQUEST),
 
 
     SERVICE_NOT_FOUND(2001, "Service not found", HttpStatus.NOT_FOUND),

@@ -17,25 +17,10 @@ public interface AparmentService {
     ApartmentResponse getById(UUID apartmentId);
     Page<ApartmentResidentResponse> getResidencyHistory(UUID apartmentId, ResidentType type, Pageable pageable);
     List<ApartmentResponse> getAllApartments();
-
     List<ApartmentResponse> getByBuildingId(UUID buildingId);
-
     Page<ApartmentResponse> getByBuildingIdPaged(UUID buildingId, Pageable pageable);
-
-    ApartmentResponse getByBuildingAndCode(UUID buildingId, String code);
-
-    boolean checkExists(UUID buildingId, String code);
-
-    List<ApartmentResponse> getByBuildingAndFloor(UUID buildingId, Integer floorNumber);
-
-    Page<ApartmentResponse> getByBuildingAndStatus(UUID buildingId, ApartmentStatus status, Pageable pageable);
-
-    Page<ApartmentResponse> getByBuildingAndBedrooms(UUID buildingId, Integer bedroomCount, Pageable pageable);
-
     Long countTotalInBuilding(UUID buildingId);
-
     Long countByStatusInBuilding(UUID buildingId, ApartmentStatus status);
-
     Page<ApartmentResponse> searchWithFilters(
             UUID buildingId,
             String code,
@@ -45,12 +30,6 @@ public interface AparmentService {
             Pageable pageable
     );
     Page<ApartmentResponse> getApartmentsWithOwner(UUID buildingId, Pageable pageable);
-
-    Page<ApartmentResponse> getApartmentsWithoutOwner(UUID buildingId, Pageable pageable);
-
     List<ApartmentResponse> getApartmentsByResidentEmail(String email);
-
-    void deleteByBuilding(UUID buildingId);
-
     void moveOut(UUID residentId);
 }

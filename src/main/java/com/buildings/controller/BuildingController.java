@@ -60,6 +60,7 @@ public class BuildingController {
             @PathVariable UUID id,
             @Valid @RequestBody BuildingDTO buildingDTO) {
         return ApiResponse.<BuildingDTO>builder()
+                .code(200)
                 .message("Cập nhật thông tin tòa nhà thành công.")
                 .result(buildingService.updateBuilding(id, buildingDTO))
                 .build();
@@ -125,12 +126,5 @@ public class BuildingController {
     }
 
 
-    private Map<String, Object> wrapPagination(Page<BuildingDTO> page) {
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("data", page.getContent());
-        response.put("currentPage", page.getNumber());
-        response.put("totalItems", page.getTotalElements());
-        response.put("totalPages", page.getTotalPages());
-        return response;
-    }
+
 }
