@@ -29,6 +29,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -58,6 +60,7 @@ public class MaintenanceRequestServiceImpl implements MaintenanceRequestService 
         MaintenanceRequest entity = maintenanceMapper.toMaintenanceRequest(request);
         entity.setCode(generateCode());
         entity.setRequestStatus(RequestStatus.PENDING);
+        entity.setRequester(getCurrentUserOrThrow());
 
         if (request.getBuildingId() != null) {
             Building building = buildingRepository.findById(request.getBuildingId()).orElse(null);
@@ -93,9 +96,11 @@ public class MaintenanceRequestServiceImpl implements MaintenanceRequestService 
     }
 
     @Override
-    public PageResponse<MaintenanceRequestResponse> getRequests(String keyword, int page, int size) {
+    public PageResponse<MaintenanceRequestResponse> getRequests(String keyword, int page, int size, UUID requesterId) {
         Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
-        Page<MaintenanceRequest> pageResult = maintenanceRequestRepository.findAll(buildKeywordSpec(keyword), pageable);
+        Specification<MaintenanceRequest> spec = Specification.where(buildKeywordSpec(keyword))
+                .and(buildRequesterIdSpec(requesterId));
+        Page<MaintenanceRequest> pageResult = maintenanceRequestRepository.findAll(spec, pageable);
         List<MaintenanceRequestResponse> responseList = pageResult.getContent().stream()
                 .map(maintenanceMapper::toMaintenanceRequestResponse)
                 .collect(Collectors.toList());
@@ -103,8 +108,10 @@ public class MaintenanceRequestServiceImpl implements MaintenanceRequestService 
     }
 
     @Override
-    public List<MaintenanceRequestResponse> getAllRequests(String keyword) {
-        return maintenanceRequestRepository.findAll(buildKeywordSpec(keyword)).stream()
+    public List<MaintenanceRequestResponse> getAllRequests(String keyword, UUID requesterId) {
+        Specification<MaintenanceRequest> spec = Specification.where(buildKeywordSpec(keyword))
+                .and(buildRequesterIdSpec(requesterId));
+        return maintenanceRequestRepository.findAll(spec, Sort.by("createdAt").descending()).stream()
                 .map(maintenanceMapper::toMaintenanceRequestResponse)
                 .collect(Collectors.toList());
     }
@@ -135,7 +142,9 @@ public class MaintenanceRequestServiceImpl implements MaintenanceRequestService 
         entity.setStaff(staff);
         entity.setRequestStatus(RequestStatus.VERIFYING);
         MaintenanceRequest saved = maintenanceRequestRepository.save(entity);
-        logAction(saved.getId(), "ASSIGN_REQUEST", "Giao cho nhan vien: " + staff.getFullName());
+        String note = "Giao cho nhan vien: " + staff.getFullName()
+            + (StringUtils.hasText(request.getNote()) ? " | Ghi chu: " + request.getNote() : "");
+        logAction(saved.getId(), "ASSIGN_REQUEST", note);
         return maintenanceMapper.toMaintenanceRequestResponse(saved);
     }
 
@@ -154,9 +163,26 @@ public class MaintenanceRequestServiceImpl implements MaintenanceRequestService 
         };
     }
 
+    private Specification<MaintenanceRequest> buildRequesterIdSpec(UUID requesterId) {
+        if (requesterId == null) {
+            return null;
+        }
+        return (root, query, cb) -> cb.equal(root.get("requester").get("id"), requesterId);
+    }
+
     private void logAction(UUID requestId, String action, String note) {
         maintenanceLogRepository.save(MaintenanceLog.builder()
                 .requestId(requestId).action(action).note(note).build());
+    }
+
+    private User getCurrentUserOrThrow() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !StringUtils.hasText(authentication.getName())) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+
+        return userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
     }
 
     private String generateCode() {
