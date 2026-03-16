@@ -191,7 +191,7 @@ public class ApartmentController {
     @GetMapping("/{apartmentId}/history")
     @Operation(
             summary = "Lịch sử cư trú căn hộ",
-            description = "Lấy danh sách phân trang tất cả người đã và đang ở. VD: ?page=0&size=10&sort=assignedAt,desc&type=OWNER"
+            description = "Lấy danh sách phân trang tất cả người đã và đang ở"
     )
     public ResponseEntity<ApiResponse<Page<ApartmentResidentResponse>>> getHistory(
             @PathVariable UUID apartmentId,
