@@ -8,7 +8,6 @@ import com.buildings.dto.response.service.MeterReadingResponse;
 import com.buildings.dto.response.service.OldIndexResponse;
 import com.buildings.dto.response.service.PeriodSummaryResponse;
 import com.buildings.entity.enums.MeterReadingStatus;
-import com.buildings.service.FileStorageService;
 import com.buildings.service.MeterReadingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -31,10 +30,7 @@ import java.util.UUID;
 public class MeterReadingController {
 
         private final MeterReadingService meterReadingService;
-        private final FileStorageService fileStorageService;
         private final ObjectMapper objectMapper;
-
-        private static final String METER_PHOTOS_DIR = "meter-photos";
 
         // ==================== CRUD ====================
 
@@ -52,12 +48,6 @@ public class MeterReadingController {
                         throw new RuntimeException("Invalid JSON in 'data' field: " + e.getMessage());
                 }
 
-                // Save photo if provided
-                String photoUrl = null;
-                if (photo != null && !photo.isEmpty()) {
-                        photoUrl = fileStorageService.saveFile(photo, METER_PHOTOS_DIR);
-                }
-
                 // Get current user ID from JWT
                 UUID takenById = null;
                 if (jwt != null) {
@@ -71,7 +61,7 @@ public class MeterReadingController {
                         }
                 }
 
-                MeterReadingResponse result = meterReadingService.create(request, photoUrl, takenById);
+                MeterReadingResponse result = meterReadingService.create(request, photo, takenById);
                 return ApiResponse.<MeterReadingResponse>builder()
                                 .result(result)
                                 .message("Meter reading created successfully")
@@ -99,13 +89,7 @@ public class MeterReadingController {
                         throw new RuntimeException("Invalid JSON in 'data' field: " + e.getMessage());
                 }
 
-                // Save new photo if provided
-                String newPhotoUrl = null;
-                if (photo != null && !photo.isEmpty()) {
-                        newPhotoUrl = fileStorageService.saveFile(photo, METER_PHOTOS_DIR);
-                }
-
-                MeterReadingResponse result = meterReadingService.update(id, request, newPhotoUrl);
+                MeterReadingResponse result = meterReadingService.update(id, request, photo);
                 return ApiResponse.<MeterReadingResponse>builder()
                                 .result(result)
                                 .message("Meter reading updated successfully")
