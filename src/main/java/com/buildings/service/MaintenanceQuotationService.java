@@ -10,7 +10,7 @@ import java.util.UUID;
 
 public interface MaintenanceQuotationService {
     MaintenanceQuotationResponse createQuotation(UUID requestId, MaintenanceQuotationRequest quotation);
-    List<MaintenanceQuotationResponse> getQuotationsByRequestId(UUID requestId);
+    List<MaintenanceQuotationResponse> getQuotationsByRequestId(UUID requestId, boolean isResident);
     MaintenanceQuotationResponse getQuotationById(UUID quotationId);
     MaintenanceQuotationResponse updateQuotation(UUID quotationId, MaintenanceQuotationUpdateRequest request);
     MaintenanceQuotationResponse updateQuotationStatus(UUID quotationId, QuotationStatus status);

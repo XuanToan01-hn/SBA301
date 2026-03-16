@@ -96,6 +96,7 @@ public class MaintenanceWorkflowServiceImpl implements MaintenanceWorkflowServic
                 schedule.setStatus(ScheduleStatus.CONFIRMED);
                 maintenanceScheduleRepository.save(schedule);
                 maintenanceRequest.setRequestStatus(RequestStatus.IN_PROGRESS);
+                maintenanceRequest.setPreferredTime(schedule.getProposedTime());
                 maintenanceRequest.setStartedAt(schedule.getProposedTime());
                 maintenanceRequestRepository.save(maintenanceRequest);
                 logAction(requestId, "CONFIRM_SCHEDULE", "Xac nhan lich sua chua: " + schedule.getProposedTime());
