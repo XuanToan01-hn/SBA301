@@ -1,7 +1,9 @@
 package com.buildings.repository;
 
 import com.buildings.entity.Apartment;
+import com.buildings.entity.ApartmentResident;
 import com.buildings.entity.enums.ApartmentStatus;
+import com.buildings.entity.enums.ResidentType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -30,16 +32,6 @@ public interface ApartmentRepository extends JpaRepository<Apartment, UUID> {
 
     Page<Apartment> findByBuildingId(UUID buildingId, Pageable pageable);
 
-    Optional<Apartment> findByBuildingIdAndCode(UUID buildingId, String code);
-
-    boolean existsByBuildingIdAndCode(UUID buildingId, String code);
-
-    List<Apartment> findByBuildingIdAndFloorNumber(UUID buildingId, Integer floorNumber);
-
-    Page<Apartment> findByBuildingIdAndStatus(UUID buildingId, ApartmentStatus status, Pageable pageable);
-
-    Page<Apartment> findByBuildingIdAndBedroomCount(UUID buildingId, Integer bedroomCount, Pageable pageable);
-
     Long countByBuildingId(UUID buildingId);
 
     Long countByBuildingIdAndStatus(UUID buildingId, ApartmentStatus status);
@@ -65,12 +57,6 @@ public interface ApartmentRepository extends JpaRepository<Apartment, UUID> {
             "AND r.movedOutAt IS NULL")
     Page<Apartment> findApartmentsWithOwner(@Param("buildingId") UUID buildingId, Pageable pageable);
 
-    @Query("SELECT a FROM Apartment a WHERE a.building.id = :buildingId " +
-            "AND NOT EXISTS (SELECT 1 FROM ApartmentResident r " +
-            "WHERE r.apartment.id = a.id AND r.residentType = 'OWNER' AND r.movedOutAt IS NULL)")
-    Page<Apartment> findApartmentsWithoutOwner(@Param("buildingId") UUID buildingId, Pageable pageable);
-
-    void deleteByBuildingId(UUID buildingId);
 
     List<Apartment> findByStatus(ApartmentStatus status);
     @Query("SELECT DISTINCT a FROM Apartment a " +
@@ -79,4 +65,11 @@ public interface ApartmentRepository extends JpaRepository<Apartment, UUID> {
             "WHERE r.user.email = :email " +
             "AND r.movedOutAt IS NULL")
     List<Apartment> findByResidentEmail(@Param("email") String email);
+
+    @Query("SELECT r FROM ApartmentResident r WHERE r.apartment.id = :apartmentId " +
+            "AND (:type IS NULL OR r.residentType = :type)")
+    Page<ApartmentResident> findHistoryByApartmentId(
+            @Param("apartmentId") UUID apartmentId,
+            @Param("type") ResidentType type,
+            Pageable pageable);
 }

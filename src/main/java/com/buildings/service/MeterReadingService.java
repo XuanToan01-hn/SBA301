@@ -9,6 +9,8 @@ import com.buildings.entity.enums.MeterReadingStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
@@ -16,11 +18,11 @@ import java.util.UUID;
 public interface MeterReadingService {
 
     // CRUD
-    MeterReadingResponse create(MeterReadingCreateRequest request, String photoUrl, UUID takenById);
+    MeterReadingResponse create(MeterReadingCreateRequest request, MultipartFile photo, UUID takenById);
 
     MeterReadingResponse getById(UUID id);
 
-    MeterReadingResponse update(UUID id, MeterReadingUpdateRequest request, String newPhotoUrl);
+    MeterReadingResponse update(UUID id, MeterReadingUpdateRequest request, MultipartFile newPhoto);
 
     void delete(UUID id);
 

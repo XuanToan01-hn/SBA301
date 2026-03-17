@@ -2,6 +2,7 @@ package com.buildings.dto.response.apartment_resident;
 
 
 import com.buildings.entity.enums.ResidentType;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -20,5 +21,5 @@ public class ApartmentResidentResponse {
     private String phone;
     private String residentType;
     private LocalDateTime assignedAt;
-    private boolean isCurrent;
-}
+    private LocalDateTime movedOutAt;
+    private boolean isCurrent;}

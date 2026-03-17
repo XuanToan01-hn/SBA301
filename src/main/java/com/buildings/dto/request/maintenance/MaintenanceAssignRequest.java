@@ -13,4 +13,5 @@ import java.util.UUID;
 public class MaintenanceAssignRequest {
 
     private UUID staffId;
+    private String note;
 }
