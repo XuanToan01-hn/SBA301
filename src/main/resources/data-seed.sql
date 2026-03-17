@@ -1,6 +1,9 @@
 -- Script insert dữ liệu mẫu chi tiết cho hệ thống ABMS
 -- Đảm bảo Hibernate đã tạo bảng với cột UUID là VARCHAR(36)
 
+CREATE DATABASE IF NOT EXISTS building_management;
+USE building_management;
+
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- --------------------------------------------------------
@@ -14,6 +17,12 @@ TRUNCATE TABLE maintenance_items;
 TRUNCATE TABLE maintenance_quotations;
 TRUNCATE TABLE maintenance_schedules;
 TRUNCATE TABLE maintenance_requests;
+TRUNCATE TABLE bill_details;
+TRUNCATE TABLE monthly_bills;
+TRUNCATE TABLE meter_readings;
+TRUNCATE TABLE service_tariff_tiers;
+TRUNCATE TABLE service_tariffs;
+TRUNCATE TABLE services;
 TRUNCATE TABLE apartment_residents;
 TRUNCATE TABLE apartments;
 TRUNCATE TABLE buildings;
@@ -350,3 +359,278 @@ VALUES
     (UUID(),@a6,@svc_electric,'2026-01',900,980,80,0,NULL,NOW(),@u_tech3,'CONFIRMED','Điện tháng 1',NOW(),NOW(),0),
 
     (UUID(),@a6,@svc_water,'2026-01',300,312,12,0,NULL,NOW(),@u_tech3,'CONFIRMED','Nước tháng 1',NOW(),NOW(),0);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- =============================================
+-- MONTHLY BILLS - tháng 3/2026
+-- =============================================
+SET @bill1 = UUID();
+SET @bill2 = UUID();
+SET @bill3 = UUID();
+
+INSERT INTO monthly_bills (
+    id, apartment_id,
+    period_from, period_to, period_code,
+    subtotal, tax_total, total_amount,
+    status, issued_at, due_date, locked,
+    created_at, updated_at, is_deleted
+) VALUES
+      (
+          @bill1,
+          @a1,
+          '2026-03-01 00:00:00', '2026-03-31 23:59:59', '2026-03',
+          500000, 50000, 550000,
+          'UNPAID', NOW(), '2026-04-10 23:59:59', 0,
+          NOW(), NOW(), 0
+      ),
+      (
+          @bill2,
+          @a2,
+          '2026-03-01 00:00:00', '2026-03-31 23:59:59', '2026-03',
+          700000, 70000, 770000,
+          'UNPAID', NOW(), '2026-04-10 23:59:59', 0,
+          NOW(), NOW(), 0
+      ),
+      (
+          @bill3,
+          @a3,
+          '2026-03-01 00:00:00', '2026-03-31 23:59:59', '2026-03',
+          900000, 90000, 990000,
+          'UNPAID', NOW(), '2026-04-10 23:59:59', 0,
+          NOW(), NOW(), 0
+      );
+
+-- =============================================
+-- BILL DETAILS - 2 dòng cho mỗi bill
+-- =============================================
+INSERT INTO bill_details (
+    id, bill_id,
+    description, quantity, unit_price, amount,
+    tax_rate, total_line,
+    created_at, updated_at, is_deleted
+) VALUES
+-- Bill 1
+('bd000001-0000-0000-0000-000000000001', @bill1,
+ 'Phí quản lý tháng 3/2026', 1, 300000, 300000, 10, 330000, NOW(), NOW(), 0),
+('bd000002-0000-0000-0000-000000000002', @bill1,
+ 'Tiền điện tháng 3/2026', 150, 1500, 225000, 10, 247500, NOW(), NOW(), 0),
+
+-- Bill 2
+('bd000003-0000-0000-0000-000000000003', @bill2,
+ 'Phí quản lý tháng 3/2026', 1, 300000, 300000, 10, 330000, NOW(), NOW(), 0),
+('bd000004-0000-0000-0000-000000000004', @bill2,
+ 'Tiền nước tháng 3/2026', 20, 20000, 400000, 10, 440000, NOW(), NOW(), 0),
+
+-- Bill 3
+('bd000005-0000-0000-0000-000000000005', @bill3,
+ 'Phí quản lý tháng 3/2026', 1, 300000, 300000, 10, 330000, NOW(), NOW(), 0),
+('bd000006-0000-0000-0000-000000000006', @bill3,
+ 'Tiền điện tháng 3/2026', 400, 1800, 720000, 10, 792000, NOW(), NOW(), 0);
+
+-- --------------------------------------------------------
+-- 18. BULK MAINTENANCE REQUESTS FOR STAFF TESTING
+-- --------------------------------------------------------
+-- Muc tieu: tao nhieu ticket da assign de test trang /maintenance cua STAFF.
+
+INSERT INTO maintenance_requests (
+    id, code, requester_id, staff_id, apartment_id, building_id,
+    category, priority, request_status, title, description, scope,
+    created_at, updated_at, is_deleted
+) VALUES
+    (UUID(), 'REQ-1001', @u_res1, @u_tech1, @a1, @b1, 'REPAIR', 'HIGH', 'VERIFYING',
+     'Dieu hoa phong ngu keu to', 'Dieu hoa phat ra tieng on, can kiem tra block.', 'PRIVATE',
+     DATE_SUB(NOW(), INTERVAL 14 DAY), DATE_SUB(NOW(), INTERVAL 13 DAY), 0),
+    (UUID(), 'REQ-1002', @u_res1, @u_tech1, @a1, @b1, 'REPAIR', 'NORMAL', 'IN_PROGRESS',
+     'Bon rua bep thoat nuoc cham', 'Bon rua thoat nuoc cham va co mui.', 'PRIVATE',
+     DATE_SUB(NOW(), INTERVAL 11 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), 0),
+    (UUID(), 'REQ-1003', @u_res2, @u_tech1, @a2, @b1, 'REPAIR', 'LOW', 'WAITING_APPROVAL',
+     'Thay khoa cua phong ngu', 'Khoa cua bi ket, can thay khoa moi.', 'PRIVATE',
+     DATE_SUB(NOW(), INTERVAL 10 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), 0),
+    (UUID(), 'REQ-1004', @u_res2, @u_tech1, @a2, @b1, 'SERVICE', 'NORMAL', 'COMPLETED',
+     'Can ho tro lap rem cua', 'Lap rem cua phong khach theo kich thuoc co san.', 'PRIVATE',
+     DATE_SUB(NOW(), INTERVAL 25 DAY), DATE_SUB(NOW(), INTERVAL 7 DAY), 0),
+    (UUID(), 'REQ-1005', @u_res3, @u_tech1, @a3, @b1, 'REPAIR', 'CRITICAL', 'IN_PROGRESS',
+     'Ro dien tu tu dien', 'Tu dien co mui khe va aptomat nhay lien tuc.', 'PRIVATE',
+     DATE_SUB(NOW(), INTERVAL 3 DAY), NOW(), 0),
+
+    (UUID(), 'REQ-1006', @u_res4, @u_tech2, @a6, @b2, 'REPAIR', 'HIGH', 'VERIFYING',
+     'Tran phong khach bi tham', 'Vet tham lan rong sau mua lon.', 'PRIVATE',
+     DATE_SUB(NOW(), INTERVAL 12 DAY), DATE_SUB(NOW(), INTERVAL 9 DAY), 0),
+    (UUID(), 'REQ-1007', @u_res4, @u_tech2, @a6, @b2, 'MAINTENANCE', 'NORMAL', 'QUOTING',
+     'Bao tri nong lanh dinh ky', 'Nong lanh can ve sinh va thay thanh magie.', 'PRIVATE',
+     DATE_SUB(NOW(), INTERVAL 8 DAY), DATE_SUB(NOW(), INTERVAL 2 DAY), 0),
+    (UUID(), 'REQ-1008', @u_res3, @u_tech2, @a3, @b1, 'REPAIR', 'HIGH', 'IN_PROGRESS',
+     'Cong tac den bep bi cham chap', 'Bat den co tieng tach tach, nghi cham chap.', 'PRIVATE',
+     DATE_SUB(NOW(), INTERVAL 5 DAY), NOW(), 0),
+    (UUID(), 'REQ-1009', @u_res2, @u_tech2, @a2, @b1, 'OTHER', 'LOW', 'CANCELLED',
+     'Yeu cau son lai cua go', 'Chu nha doi lich va huy yeu cau.', 'PRIVATE',
+     DATE_SUB(NOW(), INTERVAL 18 DAY), DATE_SUB(NOW(), INTERVAL 17 DAY), 0),
+    (UUID(), 'REQ-1010', @u_res1, @u_tech2, @a1, @b1, 'REPAIR', 'NORMAL', 'RESIDENT_ACCEPTED',
+     'Thay day cap TV', 'Day cap cu hu hong, da thay moi.', 'PRIVATE',
+     DATE_SUB(NOW(), INTERVAL 28 DAY), DATE_SUB(NOW(), INTERVAL 12 DAY), 0),
+
+    (UUID(), 'REQ-1011', @u_res3, @u_tech3, @a3, @b1, 'SERVICE', 'LOW', 'PENDING',
+     'Ho tro van chuyen may giat', 'Can 2 nguoi di doi may giat sang ban cong.', 'PRIVATE',
+     DATE_SUB(NOW(), INTERVAL 1 DAY), NOW(), 0),
+    (UUID(), 'REQ-1012', @u_res4, @u_tech3, @a6, @b2, 'REPAIR', 'HIGH', 'VERIFYING',
+     'Ro nuoc tu tran nha ve sinh', 'Tran nha ve sinh tang tren ro nuoc nho giot.', 'PRIVATE',
+     DATE_SUB(NOW(), INTERVAL 6 DAY), DATE_SUB(NOW(), INTERVAL 5 DAY), 0),
+    (UUID(), 'REQ-1013', @u_res1, @u_tech3, @a1, @b1, 'CLEANING', 'NORMAL', 'COMPLETED',
+     'Ve sinh ong thong gio', 'Ve sinh ong thong gio bep va nha ve sinh.', 'PRIVATE',
+     DATE_SUB(NOW(), INTERVAL 22 DAY), DATE_SUB(NOW(), INTERVAL 10 DAY), 0),
+    (UUID(), 'REQ-1014', @u_res2, @u_tech3, @a2, @b1, 'MAINTENANCE', 'NORMAL', 'WAITING_APPROVAL',
+     'Bao tri khoa van nuoc tong', 'Van tong can bao tri de tranh ket cung.', 'PRIVATE',
+     DATE_SUB(NOW(), INTERVAL 7 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), 0),
+    (UUID(), 'REQ-1015', @u_res4, @u_tech3, @a6, @b2, 'REPAIR', 'CRITICAL', 'IN_PROGRESS',
+     'Mat dien cuc bo trong can ho', 'Mot phan can ho bi mat dien khong ro nguyen nhan.', 'PRIVATE',
+     DATE_SUB(NOW(), INTERVAL 2 DAY), NOW(), 0);
+
+-- --------------------------------------------------------
+-- 19. BULK SCHEDULES / QUOTATIONS / PROGRESS / LOGS
+-- --------------------------------------------------------
+
+INSERT INTO maintenance_schedules (
+    id, maintenance_request_id, proposed_time, estimated_duration,
+    status, proposed_by_role, proposed_by_id, created_at, updated_at, is_deleted
+)
+SELECT UUID(), r.id,
+       DATE_ADD(NOW(), INTERVAL 1 + (ROW_NUMBER() OVER (ORDER BY r.created_at)) DAY),
+       45 + (ROW_NUMBER() OVER (ORDER BY r.created_at) * 5),
+       CASE WHEN r.request_status IN ('COMPLETED', 'RESIDENT_ACCEPTED') THEN 'CONFIRMED' ELSE 'PROPOSED' END,
+       'STAFF',
+       r.staff_id,
+       DATE_SUB(NOW(), INTERVAL 1 DAY), NOW(), 0
+FROM maintenance_requests r
+WHERE r.code IN ('REQ-1001','REQ-1002','REQ-1003','REQ-1004','REQ-1005','REQ-1006','REQ-1007','REQ-1008','REQ-1010','REQ-1012','REQ-1013','REQ-1014','REQ-1015');
+
+INSERT INTO maintenance_quotations (
+    id, maintenance_request_id, code, title, status, total_amount, created_at, updated_at, is_deleted
+)
+SELECT UUID(), r.id,
+       CONCAT('QT-', r.code),
+       CONCAT('Bao gia cho ', r.code),
+       CASE
+           WHEN r.request_status IN ('WAITING_APPROVAL') THEN 'SENT'
+           WHEN r.request_status IN ('COMPLETED', 'RESIDENT_ACCEPTED') THEN 'APPROVED'
+           WHEN r.request_status IN ('QUOTING', 'VERIFYING') THEN 'DRAFT'
+           ELSE 'SENT'
+       END,
+       CASE
+           WHEN r.priority = 'CRITICAL' THEN 3200000
+           WHEN r.priority = 'HIGH' THEN 1800000
+           WHEN r.priority = 'NORMAL' THEN 900000
+           ELSE 450000
+       END,
+       DATE_SUB(NOW(), INTERVAL 2 DAY), NOW(), 0
+FROM maintenance_requests r
+WHERE r.code IN ('REQ-1001','REQ-1003','REQ-1004','REQ-1005','REQ-1006','REQ-1007','REQ-1008','REQ-1010','REQ-1012','REQ-1013','REQ-1014','REQ-1015');
+
+INSERT INTO maintenance_items (
+    id, quotation_id, name, item_type, quantity, unit_price, created_at, updated_at, is_deleted
+)
+SELECT UUID(), q.id, 'Vat tu chinh', 'MATERIAL', 1,
+       CASE WHEN q.total_amount >= 2000000 THEN 1400000 ELSE 500000 END,
+       NOW(), NOW(), 0
+FROM maintenance_quotations q
+WHERE q.code LIKE 'QT-REQ-10%';
+
+INSERT INTO maintenance_items (
+    id, quotation_id, name, item_type, quantity, unit_price, created_at, updated_at, is_deleted
+)
+SELECT UUID(), q.id, 'Nhan cong', 'LABOR', 1,
+       CASE WHEN q.total_amount >= 2000000 THEN 1000000 ELSE 300000 END,
+       NOW(), NOW(), 0
+FROM maintenance_quotations q
+WHERE q.code LIKE 'QT-REQ-10%';
+
+INSERT INTO maintenance_progresses (
+    id, maintenance_request_id, note, progress_percent, updated_by_id, created_at, updated_at, is_deleted
+)
+SELECT UUID(), r.id,
+       CONCAT('Cap nhat tien do ticket ', r.code),
+       CASE
+           WHEN r.request_status = 'VERIFYING' THEN 15
+           WHEN r.request_status = 'QUOTING' THEN 25
+           WHEN r.request_status = 'WAITING_APPROVAL' THEN 40
+           WHEN r.request_status = 'IN_PROGRESS' THEN 70
+           WHEN r.request_status IN ('COMPLETED', 'RESIDENT_ACCEPTED') THEN 100
+           WHEN r.request_status = 'CANCELLED' THEN 0
+           ELSE 10
+       END,
+       r.staff_id,
+       NOW(), NOW(), 0
+FROM maintenance_requests r
+WHERE r.code IN ('REQ-1001','REQ-1002','REQ-1003','REQ-1004','REQ-1005','REQ-1006','REQ-1007','REQ-1008','REQ-1009','REQ-1010','REQ-1011','REQ-1012','REQ-1013','REQ-1014','REQ-1015');
+
+INSERT INTO maintenance_logs (
+    id, request_id, actor_id, action, created_at, updated_at, is_deleted
+)
+SELECT UUID(), r.id, r.requester_id, 'CREATED_REQUEST', DATE_SUB(r.created_at, INTERVAL 2 HOUR), DATE_SUB(r.created_at, INTERVAL 2 HOUR), 0
+FROM maintenance_requests r
+WHERE r.code IN ('REQ-1001','REQ-1002','REQ-1003','REQ-1004','REQ-1005','REQ-1006','REQ-1007','REQ-1008','REQ-1009','REQ-1010','REQ-1011','REQ-1012','REQ-1013','REQ-1014','REQ-1015');
+
+INSERT INTO maintenance_logs (
+    id, request_id, actor_id, action, created_at, updated_at, is_deleted
+)
+SELECT UUID(), r.id, r.staff_id, 'ASSIGNED_STAFF', DATE_SUB(r.created_at, INTERVAL 1 HOUR), DATE_SUB(r.created_at, INTERVAL 1 HOUR), 0
+FROM maintenance_requests r
+WHERE r.code IN ('REQ-1001','REQ-1002','REQ-1003','REQ-1004','REQ-1005','REQ-1006','REQ-1007','REQ-1008','REQ-1009','REQ-1010','REQ-1011','REQ-1012','REQ-1013','REQ-1014','REQ-1015');
+
+-- --------------------------------------------------------
+-- 20. BULK REVIEWS FOR COMPLETED REQUESTS
+-- --------------------------------------------------------
+INSERT INTO maintenance_reviews (
+    id, maintenance_request_id, rating, comment, outcome, reviewed_by_id, created_at, updated_at, is_deleted
+)
+SELECT UUID(), r.id,
+       CASE WHEN r.priority IN ('HIGH','CRITICAL') THEN 4 ELSE 5 END,
+       CONCAT('Danh gia mau cho ', r.code),
+       'ACCEPTED',
+       r.requester_id,
+       NOW(), NOW(), 0
+FROM maintenance_requests r
+WHERE r.request_status IN ('COMPLETED', 'RESIDENT_ACCEPTED')
+  AND r.code IN ('REQ-1004','REQ-1010','REQ-1013');
+
+-- --------------------------------------------------------
+-- 21. EXTRA METER READINGS FOR 2026-02, 2026-03
+-- --------------------------------------------------------
+INSERT INTO meter_readings (
+    id, apartment_id, service_id, period, old_index, new_index, consumption,
+    is_meter_reset, photo_url, taken_at, taken_by, status, note,
+    created_at, updated_at, is_deleted
+) VALUES
+    (UUID(), @a1, @svc_electric, '2026-02', 1350, 1510, 160, 0, NULL, NOW(), @u_tech1, 'CONFIRMED', 'Dien thang 2', NOW(), NOW(), 0),
+    (UUID(), @a1, @svc_water,    '2026-02', 365, 381, 16, 0, NULL, NOW(), @u_tech1, 'CONFIRMED', 'Nuoc thang 2', NOW(), NOW(), 0),
+    (UUID(), @a2, @svc_electric, '2026-02', 900, 1008, 108, 0, NULL, NOW(), @u_tech2, 'CONFIRMED', 'Dien thang 2', NOW(), NOW(), 0),
+    (UUID(), @a2, @svc_water,    '2026-02', 218, 227, 9, 0, NULL, NOW(), @u_tech2, 'CONFIRMED', 'Nuoc thang 2', NOW(), NOW(), 0),
+    (UUID(), @a3, @svc_electric, '2026-02', 1680, 1865, 185, 0, NULL, NOW(), @u_tech1, 'CONFIRMED', 'Dien thang 2', NOW(), NOW(), 0),
+    (UUID(), @a3, @svc_water,    '2026-02', 520, 542, 22, 0, NULL, NOW(), @u_tech1, 'CONFIRMED', 'Nuoc thang 2', NOW(), NOW(), 0),
+    (UUID(), @a6, @svc_electric, '2026-02', 980, 1068, 88, 0, NULL, NOW(), @u_tech3, 'CONFIRMED', 'Dien thang 2', NOW(), NOW(), 0),
+    (UUID(), @a6, @svc_water,    '2026-02', 312, 325, 13, 0, NULL, NOW(), @u_tech3, 'CONFIRMED', 'Nuoc thang 2', NOW(), NOW(), 0),
+
+    (UUID(), @a1, @svc_electric, '2026-03', 1510, 1672, 162, 0, NULL, NOW(), @u_tech1, 'CONFIRMED', 'Dien thang 3', NOW(), NOW(), 0),
+    (UUID(), @a1, @svc_water,    '2026-03', 381, 397, 16, 0, NULL, NOW(), @u_tech1, 'CONFIRMED', 'Nuoc thang 3', NOW(), NOW(), 0),
+    (UUID(), @a2, @svc_electric, '2026-03', 1008, 1122, 114, 0, NULL, NOW(), @u_tech2, 'CONFIRMED', 'Dien thang 3', NOW(), NOW(), 0),
+    (UUID(), @a2, @svc_water,    '2026-03', 227, 237, 10, 0, NULL, NOW(), @u_tech2, 'CONFIRMED', 'Nuoc thang 3', NOW(), NOW(), 0),
+    (UUID(), @a3, @svc_electric, '2026-03', 1865, 2055, 190, 0, NULL, NOW(), @u_tech1, 'CONFIRMED', 'Dien thang 3', NOW(), NOW(), 0),
+    (UUID(), @a3, @svc_water,    '2026-03', 542, 565, 23, 0, NULL, NOW(), @u_tech1, 'CONFIRMED', 'Nuoc thang 3', NOW(), NOW(), 0),
+    (UUID(), @a6, @svc_electric, '2026-03', 1068, 1158, 90, 0, NULL, NOW(), @u_tech3, 'CONFIRMED', 'Dien thang 3', NOW(), NOW(), 0),
+    (UUID(), @a6, @svc_water,    '2026-03', 325, 339, 14, 0, NULL, NOW(), @u_tech3, 'CONFIRMED', 'Nuoc thang 3', NOW(), NOW(), 0);

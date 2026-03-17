@@ -59,6 +59,24 @@ PENDING → VERIFYING → QUOTING → WAITING_APPROVAL → APPROVED
 | `COMPLETED` | Hoàn thành, chờ nghiệm thu | 🟢 |
 | `RESIDENT_ACCEPTED` | Cư dân nghiệm thu xong | ✅ |
 | `CANCELLED` | Đã hủy | ⚫ |
+| `REJECTED` | Bị từ chối ở mức yêu cầu | 🔴 |
+
+#### Khi nào từng `RequestStatus` xảy ra
+
+| Trạng thái | Xảy ra khi nào | Ai kích hoạt | API / nghiệp vụ gây chuyển trạng thái |
+|-------|---------|---------|---------|
+| `PENDING` | Cư dân vừa tạo yêu cầu mới, chưa được phân công staff xử lý | RESIDENT | `POST /maintenance-requests` |
+| `VERIFYING` | Admin đã giao việc cho staff và staff bắt đầu xác minh hiện trạng, khảo sát nhu cầu sửa chữa | ADMIN | `PATCH /maintenance-requests/{id}/assign` |
+| `QUOTING` | Staff đang lập báo giá hoặc cư dân vừa từ chối báo giá trước đó nên staff phải lập lại báo giá mới | STAFF, RESIDENT | `POST /maintenance-requests/{id}/quotations`, hoặc cư dân `PATCH /quotations/{qId}/status?status=REJECTED` |
+| `WAITING_APPROVAL` | Staff đã gửi báo giá cho cư dân và đang chờ cư dân phản hồi | STAFF | `PATCH /quotations/{qId}/status?status=SENT` |
+| `APPROVED` | Cư dân đã đồng ý báo giá; từ đây hai bên có thể bắt đầu chốt lịch thực hiện | RESIDENT | `PATCH /quotations/{qId}/status?status=APPROVED` |
+| `IN_PROGRESS` | Một lịch hẹn sửa chữa đã được bên còn lại xác nhận, hoặc công việc bị yêu cầu làm lại sau nghiệm thu | RESIDENT, STAFF | Xác nhận lịch `PATCH /{id}/schedules/{sId}/respond` với `ACCEPT`, hoặc review kết quả với `REDO` |
+| `COMPLETED` | Staff cập nhật tiến độ đạt 100% hoặc báo hoàn thành công việc, chờ cư dân nghiệm thu | STAFF | Nghiệp vụ `maintenance-progress/update` đưa tiến độ lên hoàn tất |
+| `RESIDENT_ACCEPTED` | Cư dân đã nghiệm thu và chấp nhận kết quả sửa chữa | RESIDENT | Nghiệp vụ `maintenance-review/create` với `ACCEPTED` hoặc `PARTIAL_ACCEPT` |
+| `CANCELLED` | Yêu cầu bị hủy trước khi đi sâu vào xử lý, hiện áp dụng khi còn ở `PENDING` hoặc `VERIFYING` | RESIDENT, ADMIN | `PATCH /maintenance-requests/{id}/cancel` |
+| `REJECTED` | Trạng thái dự phòng cho trường hợp yêu cầu bị từ chối ở cấp request; hiện không phải nhánh chính trong workflow đang triển khai | Hệ thống / mở rộng nghiệp vụ | Chưa thấy flow chính đang set trực tiếp trong service hiện tại |
+
+> Ghi chú: trong workflow hiện tại, khi cư dân từ chối **báo giá** thì `quotationStatus = REJECTED` nhưng `requestStatus` sẽ quay về `QUOTING`, không chuyển sang `RequestStatus.REJECTED`.
 
 #### QuotationStatus
 | Value | Ý nghĩa |

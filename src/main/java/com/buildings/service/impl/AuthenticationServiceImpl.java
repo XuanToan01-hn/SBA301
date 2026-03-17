@@ -47,6 +47,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
 
+
         User user = userMapper.toUser(request);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setStatus(UserStatus.ACTIVE);
@@ -85,6 +86,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new AppException(ErrorCode.INVALID_EMAIL_PASSWORD);
+        }
+        if(user.getStatus() != UserStatus.ACTIVE) {
+            throw new AppException(ErrorCode.DEACTIVE);
         }
 
         String accessToken = jwtProvider.generateToken(user);

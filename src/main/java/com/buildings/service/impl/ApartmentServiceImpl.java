@@ -7,6 +7,7 @@ import com.buildings.entity.Apartment;
 import com.buildings.entity.ApartmentResident;
 import com.buildings.entity.User;
 import com.buildings.entity.enums.ApartmentStatus;
+import com.buildings.entity.enums.ResidentType;
 import com.buildings.exception.AppException;
 import com.buildings.exception.ErrorCode;
 import com.buildings.mapper.ApartmentMapper;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -49,33 +51,26 @@ public class ApartmentServiceImpl implements AparmentService {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
 
+        int maxOccupants = (apartment.getBedroomCount() * 2) + 2;
+        if (apartment.getCurrentResidentsCount() >= maxOccupants) {
+            throw new AppException(ErrorCode.APARTMENT_FULL, "Apartment full. Maximum residents: " + maxOccupants);
+        }
         ApartmentResident resident = ApartmentResident.builder()
                 .apartment(apartment)
                 .user(user)
                 .residentType(request.getResidentType())
                 .idCardNumber(request.getIdCardNumber())
-                .contractDetails(request.getContractDetails())
-                .ownershipCertificate(request.getOwnershipCertificate())
-                .legalDocs(request.getLegalDocs())
-                .note(request.getNote())
                 .assignedAt(LocalDateTime.now())
                 .build();
 
         residentRepository.save(resident);
 
-        apartment.setStatus(ApartmentStatus.OCCUPIED);
-        apartmentRepository.save(apartment);
+        if (apartment.getStatus() != ApartmentStatus.OCCUPIED) {
+            apartment.setStatus(ApartmentStatus.OCCUPIED);
+            apartmentRepository.save(apartment);
+        }
 
-        return ApartmentResidentResponse.builder()
-                .id(resident.getId())
-                .apartmentId(apartment.getId())
-                .apartmentCode(apartment.getCode())
-                .userId(user.getId())
-                .fullName(user.getFullName())
-                .residentType(resident.getResidentType().name())
-                .assignedAt(resident.getAssignedAt())
-                .isCurrent(true) // Gán là true vì đây là cư dân đang hoạt động (movedOutAt is null)
-                .build();
+        return mapToResidentResponse(resident);
     }
     @Override
     public List<ApartmentResponse> getAllApartments() {
@@ -90,33 +85,6 @@ public class ApartmentServiceImpl implements AparmentService {
     @Override
     public Page<ApartmentResponse> getByBuildingIdPaged(UUID buildingId, Pageable pageable) {
         return apartmentRepository.findByBuildingId(buildingId, pageable).map(apartmentMapper::toResponse);
-    }
-
-    @Override
-    public ApartmentResponse getByBuildingAndCode(UUID buildingId, String code) {
-        return apartmentRepository.findByBuildingIdAndCode(buildingId, code)
-                .map(apartmentMapper::toResponse)
-                .orElseThrow(() -> new RuntimeException("Apartment not found with code: " + code));
-    }
-
-    @Override
-    public boolean checkExists(UUID buildingId, String code) {
-        return apartmentRepository.existsByBuildingIdAndCode(buildingId, code);
-    }
-
-    @Override
-    public List<ApartmentResponse> getByBuildingAndFloor(UUID buildingId, Integer floorNumber) {
-        return apartmentMapper.toResponseList(apartmentRepository.findByBuildingIdAndFloorNumber(buildingId, floorNumber));
-    }
-
-    @Override
-    public Page<ApartmentResponse> getByBuildingAndStatus(UUID buildingId, ApartmentStatus status, Pageable pageable) {
-        return apartmentRepository.findByBuildingIdAndStatus(buildingId, status, pageable).map(apartmentMapper::toResponse);
-    }
-
-    @Override
-    public Page<ApartmentResponse> getByBuildingAndBedrooms(UUID buildingId, Integer bedroomCount, Pageable pageable) {
-        return apartmentRepository.findByBuildingIdAndBedroomCount(buildingId, bedroomCount, pageable).map(apartmentMapper::toResponse);
     }
 
     @Override
@@ -153,45 +121,29 @@ public class ApartmentServiceImpl implements AparmentService {
     }
 
     @Override
-    public Page<ApartmentResponse> getApartmentsWithoutOwner(UUID buildingId, Pageable pageable) {
-        return apartmentRepository.findApartmentsWithoutOwner(buildingId, pageable).map(apartmentMapper::toResponse);
-    }
-
-    @Override
-    public void deleteByBuilding(UUID buildingId) {
-        apartmentRepository.deleteByBuildingId(buildingId);
-    }
-
-    @Override
     public List<ApartmentResponse> getApartmentsByResidentEmail(String email) {
         return apartmentMapper.toResponseList(apartmentRepository.findByResidentEmail(email));
     }
 
     @Override
     public ApartmentResponse getById(UUID apartmentId) {
-        // 1. Lấy dữ liệu từ Repo
         Apartment apartment = apartmentRepository.findByIdFullInfo(apartmentId)
                 .orElseThrow(() -> new AppException(ErrorCode.APARTMENT_NOT_FOUND));
 
-        // 2. Gọi hàm mapping thủ công và trả về
         return mapToApartmentResponse(apartment);
     }
-
-    // --- CÁC HÀM MAPPING THỦ CÔNG ---
 
     private ApartmentResponse mapToApartmentResponse(Apartment apartment) {
         if (apartment == null) return null;
 
-        // Map thông tin cư dân (chỉ lấy những người đang ở - movedOutAt == null)
         List<ApartmentResidentResponse> residentDtos = new ArrayList<>();
         if (apartment.getResidents() != null) {
             residentDtos = apartment.getResidents().stream()
-                    .filter(r -> r.getMovedOutAt() == null) // Chỉ lấy cư dân hiện tại
-                    .map(this::mapToResidentResponse)      // Gọi hàm map từng cư dân
+                    .filter(r -> r.getMovedOutAt() == null)
+                    .map(this::mapToResidentResponse)
                     .collect(Collectors.toList());
         }
 
-        // Map thông tin căn hộ
         return ApartmentResponse.builder()
                 .id(apartment.getId())
                 .code(apartment.getCode())
@@ -201,23 +153,52 @@ public class ApartmentServiceImpl implements AparmentService {
                 .status(apartment.getStatus())
                 .buildingId(apartment.getBuilding() != null ? apartment.getBuilding().getId() : null)
                 .buildingName(apartment.getBuilding() != null ? apartment.getBuilding().getName() : "N/A")
-                .residents(residentDtos) // Nhét list cư dân đã map vào đây
+                .residents(residentDtos)
                 .build();
+    }
+
+    @Transactional
+    public void moveOut(UUID residentId) {
+        ApartmentResident resident = residentRepository.findById(residentId)
+                .orElseThrow(() -> new AppException(ErrorCode.RESIDENT_NOT_FOUND));
+//        if (resident.getMovedOutAt() != null) {
+//            throw new AppException(ErrorCode.ALREADY_MOVED_OUT);
+//        }
+        resident.setMovedOutAt(LocalDateTime.now());
+        residentRepository.save(resident);
+
+        Apartment apartment = resident.getApartment();
+        long activeCount = apartment.getResidents().stream()
+                .filter(r -> r.getMovedOutAt() == null)
+                .count();
+
+        if (activeCount == 0) {
+            apartment.setStatus(ApartmentStatus.AVAILABLE);
+            apartmentRepository.save(apartment);
+        }
+    }
+
+    @Override
+    public Page<ApartmentResidentResponse> getResidencyHistory(UUID apartmentId, ResidentType type, Pageable pageable) {
+        if (!apartmentRepository.existsById(apartmentId)) {
+            throw new AppException(ErrorCode.APARTMENT_NOT_FOUND);
+        }
+        Page<ApartmentResident> residentPage = residentRepository.findHistoryByApartmentId(apartmentId, type, pageable);
+        return residentPage.map(this::mapToResidentResponse);
     }
 
     private ApartmentResidentResponse mapToResidentResponse(ApartmentResident resident) {
         if (resident == null) return null;
-
-        User user = resident.getUser(); // Lấy đối tượng User liên kết
-
+        User user = resident.getUser();
         return ApartmentResidentResponse.builder()
                 .id(resident.getId())
                 .userId(user != null ? user.getId() : null)
                 .fullName(user != null ? user.getFullName() : "N/A")
                 .email(user != null ? user.getEmail() : "N/A")
                 .phone(user != null ? user.getPhone() : "N/A")
-                .residentType(resident.getResidentType().name()) // Convert Enum sang String
+                .residentType(resident.getResidentType().name())
                 .assignedAt(resident.getAssignedAt())
+                .movedOutAt(resident.getMovedOutAt())
                 .isCurrent(resident.getMovedOutAt() == null)
                 .build();
     }

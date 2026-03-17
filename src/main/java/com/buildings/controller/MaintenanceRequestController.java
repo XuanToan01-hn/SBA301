@@ -38,16 +38,17 @@ public class MaintenanceRequestController {
     @Operation(summary = "Danh sách yêu cầu bảo trì", description = "Lấy danh sách yêu cầu bảo trì, hỗ trợ tìm kiếm và phân trang")
     public ApiResponse<?> getRequests(
             @RequestParam(required = false, defaultValue = "") String keyword,
+                        @RequestParam(required = false) UUID requesterId,
             @RequestParam(required = false, defaultValue = "1") int page,
             @RequestParam(required = false, defaultValue = "10") int size,
             @RequestParam(required = false, defaultValue = "true") boolean pagination) {
         if (pagination) {
             return ApiResponse.<PageResponse<MaintenanceRequestResponse>>builder()
-                    .result(maintenanceRequestService.getRequests(keyword, page, size))
+                                        .result(maintenanceRequestService.getRequests(keyword, page, size, requesterId))
                     .build();
         } else {
             return ApiResponse.<List<MaintenanceRequestResponse>>builder()
-                    .result(maintenanceRequestService.getAllRequests(keyword))
+                                        .result(maintenanceRequestService.getAllRequests(keyword, requesterId))
                     .build();
         }
     }
