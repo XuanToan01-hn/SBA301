@@ -15,7 +15,7 @@ import java.util.UUID;
 
 public interface PaymentService {
 
-    PaymentResponse createPayment(UUID billId);
+    PaymentResponse createPayment(UUID billId, UUID maintenanceRequestId);
 
     void handleWebhook(PaymentWebhookDTO webhookDTO);
 

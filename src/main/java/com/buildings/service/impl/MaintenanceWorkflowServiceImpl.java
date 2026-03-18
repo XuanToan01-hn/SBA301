@@ -3,6 +3,9 @@ package com.buildings.service.impl;
 import com.buildings.dto.request.maintenance.*;
 import com.buildings.dto.response.maintenance.*;
 import com.buildings.entity.*;
+import com.buildings.entity.Role;
+import com.buildings.entity.enums.QuotationStatus;
+import com.buildings.entity.enums.RequestScope;
 import com.buildings.entity.enums.RequestStatus;
 import com.buildings.entity.enums.ScheduleProposedBy;
 import com.buildings.entity.enums.ScheduleStatus;
@@ -13,11 +16,15 @@ import com.buildings.repository.*;
 import com.buildings.service.MaintenanceWorkflowService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -33,14 +40,21 @@ public class MaintenanceWorkflowServiceImpl implements MaintenanceWorkflowServic
     private final MaintenanceScheduleRepository maintenanceScheduleRepository;
     private final MaintenanceReviewRepository maintenanceReviewRepository;
     private final MaintenanceProgressRepository maintenanceProgressRepository;
+    private final MaintenanceQuotationRepository maintenanceQuotationRepository;
+    private final MonthlyBillsRepository monthlyBillsRepository;
+    private final BillDetailRepository billDetailRepository;
+    private final UserRepository userRepository;
     private final MaintenanceMapper maintenanceMapper;
+    private final com.buildings.mapper.MonthlyBillMapper monthlyBillMapper;
 
     @Override
     @Transactional
     public MaintenanceResourceResponse addResource(UUID requestId, MaintenanceResourceRequest request) {
         MaintenanceRequest maintenanceRequest = findRequestOrThrow(requestId);
+        ensureWorkflowAccess(maintenanceRequest, false);
         MaintenanceResource resource = maintenanceMapper.toMaintenanceResource(request);
         resource.setMaintenanceRequest(maintenanceRequest);
+        resource.setUser(getCurrentUserOrThrow());
         MaintenanceResource saved = maintenanceResourceRepository.save(resource);
         logAction(requestId, "ADD_RESOURCE", "Dinh kem tai nguyen: " + resource.getName());
         return maintenanceMapper.toMaintenanceResourceResponse(saved);
@@ -48,7 +62,8 @@ public class MaintenanceWorkflowServiceImpl implements MaintenanceWorkflowServic
 
     @Override
     public List<MaintenanceResourceResponse> getResourcesByRequestId(UUID requestId) {
-        findRequestOrThrow(requestId);
+        MaintenanceRequest maintenanceRequest = findRequestOrThrow(requestId);
+        ensureWorkflowAccess(maintenanceRequest, false);
         return maintenanceResourceRepository.findByMaintenanceRequestId(requestId).stream()
                 .map(maintenanceMapper::toMaintenanceResourceResponse)
                 .collect(Collectors.toList());
@@ -56,7 +71,8 @@ public class MaintenanceWorkflowServiceImpl implements MaintenanceWorkflowServic
 
     @Override
     public List<MaintenanceLogResponse> getLogs(UUID requestId) {
-        findRequestOrThrow(requestId);
+        MaintenanceRequest maintenanceRequest = findRequestOrThrow(requestId);
+        ensureWorkflowAccess(maintenanceRequest, false);
         return maintenanceLogRepository.findByRequestId(requestId).stream()
                 .map(maintenanceMapper::toMaintenanceLogResponse)
                 .collect(Collectors.toList());
@@ -66,10 +82,13 @@ public class MaintenanceWorkflowServiceImpl implements MaintenanceWorkflowServic
     @Transactional
     public MaintenanceScheduleResponse proposeSchedule(UUID requestId, MaintenanceScheduleRequest request) {
         MaintenanceRequest maintenanceRequest = findRequestOrThrow(requestId);
+        ensureWorkflowAccess(maintenanceRequest, true);
+
+        User actor = getCurrentUserOrThrow();
         MaintenanceSchedule schedule = maintenanceMapper.toMaintenanceSchedule(request);
         schedule.setMaintenanceRequest(maintenanceRequest);
         schedule.setStatus(ScheduleStatus.PROPOSED);
-        schedule.setProposedByRole(ScheduleProposedBy.RESIDENT);
+        schedule.setProposedByRole(resolveScheduleProposedBy(actor));
         MaintenanceSchedule saved = maintenanceScheduleRepository.save(schedule);
         logAction(requestId, "PROPOSE_SCHEDULE", "De xuat lich sua chua: " + request.getProposedTime());
         return maintenanceMapper.toMaintenanceScheduleResponse(saved);
@@ -77,7 +96,8 @@ public class MaintenanceWorkflowServiceImpl implements MaintenanceWorkflowServic
 
     @Override
     public List<MaintenanceScheduleResponse> getSchedulesByRequestId(UUID requestId) {
-        findRequestOrThrow(requestId);
+        MaintenanceRequest maintenanceRequest = findRequestOrThrow(requestId);
+        ensureWorkflowAccess(maintenanceRequest, false);
         return maintenanceScheduleRepository.findByMaintenanceRequestIdOrderByCreatedAtAsc(requestId).stream()
                 .map(maintenanceMapper::toMaintenanceScheduleResponse)
                 .collect(Collectors.toList());
@@ -87,6 +107,8 @@ public class MaintenanceWorkflowServiceImpl implements MaintenanceWorkflowServic
     @Transactional
     public MaintenanceScheduleResponse respondToSchedule(UUID requestId, UUID scheduleId, ScheduleRespondRequest request) {
         MaintenanceRequest maintenanceRequest = findRequestOrThrow(requestId);
+        ensureWorkflowAccess(maintenanceRequest, true);
+        User actor = getCurrentUserOrThrow();
         MaintenanceSchedule schedule = maintenanceScheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Schedule not found"));
 
@@ -119,7 +141,7 @@ public class MaintenanceWorkflowServiceImpl implements MaintenanceWorkflowServic
                         .estimatedDuration(request.getCounterEstimatedDuration())
                         .note(request.getNote())
                         .status(ScheduleStatus.PROPOSED)
-                        .proposedByRole(ScheduleProposedBy.STAFF)
+                    .proposedByRole(resolveScheduleProposedBy(actor))
                         .parentSchedule(schedule)
                         .build();
                 MaintenanceSchedule savedCounter = maintenanceScheduleRepository.save(counter);
@@ -136,6 +158,7 @@ public class MaintenanceWorkflowServiceImpl implements MaintenanceWorkflowServic
     @Transactional
     public MaintenanceProgressResponse addProgress(UUID requestId, MaintenanceProgressRequest request) {
         MaintenanceRequest maintenanceRequest = findRequestOrThrow(requestId);
+        ensureWorkflowAccess(maintenanceRequest, true);
         MaintenanceProgress progress = maintenanceMapper.toMaintenanceProgress(request);
         progress.setMaintenanceRequest(maintenanceRequest);
 
@@ -153,7 +176,8 @@ public class MaintenanceWorkflowServiceImpl implements MaintenanceWorkflowServic
 
     @Override
     public List<MaintenanceProgressResponse> getProgressByRequestId(UUID requestId) {
-        findRequestOrThrow(requestId);
+        MaintenanceRequest maintenanceRequest = findRequestOrThrow(requestId);
+        ensureWorkflowAccess(maintenanceRequest, false);
         return maintenanceProgressRepository.findByMaintenanceRequestIdOrderByCreatedAtAsc(requestId).stream()
                 .map(maintenanceMapper::toMaintenanceProgressResponse)
                 .collect(Collectors.toList());
@@ -163,6 +187,7 @@ public class MaintenanceWorkflowServiceImpl implements MaintenanceWorkflowServic
     @Transactional
     public MaintenanceReviewResponse submitReview(UUID requestId, MaintenanceReviewRequest request) {
         MaintenanceRequest maintenanceRequest = findRequestOrThrow(requestId);
+        ensureWorkflowAccess(maintenanceRequest, true);
         if (maintenanceRequest.getRequestStatus() != RequestStatus.COMPLETED) {
             throw new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Chi co the danh gia khi yeu cau o trang thai COMPLETED");
         }
@@ -179,6 +204,7 @@ public class MaintenanceWorkflowServiceImpl implements MaintenanceWorkflowServic
                 maintenanceRequest.setRequestStatus(RequestStatus.RESIDENT_ACCEPTED);
                 maintenanceRequest.setFinishedAt(LocalDateTime.now());
                 maintenanceRequest.setClosedAt(LocalDateTime.now());
+                createOrAttachMaintenanceBill(maintenanceRequest);
                 maintenanceRequestRepository.save(maintenanceRequest);
                 logAction(requestId, "RESIDENT_ACCEPTED", "Cu dan nghiem thu: " + request.getOutcome() + " - " + request.getRating() + " sao");
             }
@@ -193,7 +219,8 @@ public class MaintenanceWorkflowServiceImpl implements MaintenanceWorkflowServic
 
     @Override
     public MaintenanceReviewResponse getReviewByRequestId(UUID requestId) {
-        findRequestOrThrow(requestId);
+        MaintenanceRequest maintenanceRequest = findRequestOrThrow(requestId);
+        ensureWorkflowAccess(maintenanceRequest, false);
         MaintenanceReview review = maintenanceReviewRepository.findByMaintenanceRequestId(requestId)
                 .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Review not found for this request"));
         return maintenanceMapper.toMaintenanceReviewResponse(review);
@@ -207,5 +234,141 @@ public class MaintenanceWorkflowServiceImpl implements MaintenanceWorkflowServic
     private void logAction(UUID requestId, String action, String note) {
         maintenanceLogRepository.save(MaintenanceLog.builder()
                 .requestId(requestId).action(action).note(note).build());
+    }
+
+    private User getCurrentUserOrThrow() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !StringUtils.hasText(authentication.getName())) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+
+        return userRepository.findByEmailWithRoles(authentication.getName())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+    }
+
+    private void ensureWorkflowAccess(MaintenanceRequest request, boolean writeAction) {
+        User currentUser = getCurrentUserOrThrow();
+        if (request.getScope() != RequestScope.PUBLIC) {
+            return;
+        }
+
+        if (isAdminActor(currentUser)) {
+            return;
+        }
+
+        if (isAssignedStaff(currentUser, request)) {
+            return;
+        }
+
+        if (isRequester(currentUser, request)) {
+            throw new AppException(ErrorCode.UNAUTHORIZED,
+                    writeAction
+                            ? "Resident cannot perform workflow actions for PUBLIC requests"
+                            : "Resident cannot access workflow details for PUBLIC requests");
+        }
+
+        throw new AppException(ErrorCode.UNAUTHORIZED);
+    }
+
+    private ScheduleProposedBy resolveScheduleProposedBy(User actor) {
+        if (isAdminActor(actor)) {
+            return ScheduleProposedBy.MANAGER;
+        }
+        if (hasRole(actor, Role.ROLE_STAFF)) {
+            return ScheduleProposedBy.STAFF;
+        }
+        return ScheduleProposedBy.RESIDENT;
+    }
+
+    private boolean isAssignedStaff(User currentUser, MaintenanceRequest request) {
+        return request.getStaff() != null
+                && request.getStaff().getEmail() != null
+                && request.getStaff().getEmail().equalsIgnoreCase(currentUser.getEmail());
+    }
+
+    private boolean isRequester(User currentUser, MaintenanceRequest request) {
+        return request.getRequester() != null
+                && request.getRequester().getEmail() != null
+                && request.getRequester().getEmail().equalsIgnoreCase(currentUser.getEmail());
+    }
+
+    private boolean isAdminActor(User user) {
+        return hasRole(user, "ADMIN")
+                || hasRole(user, "MANAGER")
+                || hasRole(user, Role.ROLE_BUILDING_MANAGER);
+    }
+
+    private boolean hasRole(User user, String roleCode) {
+        if (user == null || user.getUserRoles() == null) {
+            return false;
+        }
+        return user.getUserRoles().stream()
+                .anyMatch(ur -> ur.getRole() != null && roleCode.equalsIgnoreCase(ur.getRole().getCode()));
+    }
+
+    private void createOrAttachMaintenanceBill(MaintenanceRequest maintenanceRequest) {
+        if (maintenanceRequest.getScope() != RequestScope.PRIVATE || maintenanceRequest.getApartment() == null) {
+            return;
+        }
+
+        MaintenanceQuotation approvedQuotation = maintenanceQuotationRepository
+                .findFirstByMaintenanceRequestIdAndStatusOrderByCreatedAtDesc(
+                        maintenanceRequest.getId(),
+                        QuotationStatus.APPROVED)
+                .orElse(null);
+
+        if (approvedQuotation == null || approvedQuotation.getTotalAmount() == null) {
+            return;
+        }
+
+        String requestCode = maintenanceRequest.getCode();
+        if (requestCode != null
+                && billDetailRepository.existsMaintenanceChargeByApartmentAndRequestCode(
+                maintenanceRequest.getApartment().getId(),
+                requestCode)) {
+            return;
+        }
+
+        YearMonth now = YearMonth.now();
+        String periodCode = now.toString();
+        MonthlyBills bill = monthlyBillsRepository
+                .findFirstByApartmentIdAndPeriodCode(maintenanceRequest.getApartment().getId(), periodCode)
+                .orElseGet(() -> MonthlyBills.builder()
+                        .apartment(maintenanceRequest.getApartment())
+                        .periodFrom(now.atDay(1).atStartOfDay())
+                        .periodTo(now.atEndOfMonth().atTime(23, 59, 59))
+                        .periodCode(periodCode)
+                        .status("UNPAID")
+                        .issuedAt(LocalDateTime.now())
+                        .dueDate(LocalDateTime.now().plusDays(10))
+                        .locked(false)
+                        .details(new ArrayList<>())
+                        .build());
+
+        if (bill.getDetails() == null) {
+            bill.setDetails(new ArrayList<>());
+        }
+
+        List<BillDetail> maintenanceDetails;
+        if (approvedQuotation.getItems() != null && !approvedQuotation.getItems().isEmpty()) {
+            maintenanceDetails = approvedQuotation.getItems().stream()
+                    .map(item -> monthlyBillMapper.toBillDetail(item, requestCode))
+                    .toList();
+        } else {
+            maintenanceDetails = List.of(monthlyBillMapper.toBillDetail(approvedQuotation));
+        }
+
+        for (BillDetail detail : maintenanceDetails) {
+            detail.setBill(bill);
+            bill.getDetails().add(detail);
+        }
+
+        double subtotal = bill.getDetails().stream().mapToDouble(d -> d.getAmount() != null ? d.getAmount() : 0.0).sum();
+        double total = bill.getDetails().stream().mapToDouble(d -> d.getTotalLine() != null ? d.getTotalLine() : 0.0).sum();
+        bill.setSubtotal(subtotal);
+        bill.setTaxTotal(total - subtotal);
+        bill.setTotalAmount(total);
+
+        monthlyBillsRepository.save(bill);
     }
 }

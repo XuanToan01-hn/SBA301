@@ -13,6 +13,8 @@ public interface MonthlyBillService {
 
     BillDTO getBillDetails(UUID id);
 
+    BillDTO getPayableMaintenanceBill(UUID requestId, UUID residentId);
+
     PageResponse<BillDTO> getBillsForCurrentMonth(int page, int size, String sortBy, String unSort);
 
     PageResponse<BillDTO> getBillsByUser(UUID userId, String status, String periodCode, String apartmentCode, int page, int size, String sortBy, String unSort);

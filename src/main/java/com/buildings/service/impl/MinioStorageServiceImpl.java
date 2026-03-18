@@ -130,7 +130,10 @@ public class MinioStorageServiceImpl implements FileStorageService {
 
     @Override
     public String getFileUrl(String objectName) {
-        String endpoint = minioConfig.getEndpoint().replaceAll("/+$", "");
+        String endpoint = StringUtils.hasText(minioConfig.getPublicEndpoint())
+                ? minioConfig.getPublicEndpoint()
+                : minioConfig.getEndpoint();
+        endpoint = endpoint.replaceAll("/+$", "");
         return endpoint + "/" + minioConfig.getBucket() + "/" + objectName;
     }
 
@@ -140,12 +143,20 @@ public class MinioStorageServiceImpl implements FileStorageService {
             return false;
         }
 
-        // Extract objectName if a full URL is provided
-        String endpoint = minioConfig.getEndpoint().replaceAll("/+$", "");
-        String prefix = endpoint + "/" + minioConfig.getBucket() + "/";
-        String objectName = objectNameOrUrl.startsWith(prefix)
-                ? objectNameOrUrl.substring(prefix.length())
-                : objectNameOrUrl;
+        // Accept either internal endpoint or public endpoint URL format.
+        String internalEndpoint = minioConfig.getEndpoint().replaceAll("/+$", "");
+        String internalPrefix = internalEndpoint + "/" + minioConfig.getBucket() + "/";
+        String objectName = objectNameOrUrl;
+
+        if (objectNameOrUrl.startsWith(internalPrefix)) {
+            objectName = objectNameOrUrl.substring(internalPrefix.length());
+        } else if (StringUtils.hasText(minioConfig.getPublicEndpoint())) {
+            String publicEndpoint = minioConfig.getPublicEndpoint().replaceAll("/+$", "");
+            String publicPrefix = publicEndpoint + "/" + minioConfig.getBucket() + "/";
+            if (objectNameOrUrl.startsWith(publicPrefix)) {
+                objectName = objectNameOrUrl.substring(publicPrefix.length());
+            }
+        }
 
         try {
             minioClient.statObject(StatObjectArgs.builder()
