@@ -7,6 +7,7 @@ import com.buildings.dto.request.maintenance.MaintenanceAssignRequest;
 import com.buildings.dto.request.maintenance.MaintenanceRequestCreateRequest;
 import com.buildings.dto.request.maintenance.MaintenanceRequestUpdateRequest;
 import com.buildings.dto.response.maintenance.MaintenanceRequestResponse;
+import com.buildings.entity.enums.RequestScope;
 import com.buildings.service.MaintenanceRequestService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -39,16 +40,17 @@ public class MaintenanceRequestController {
     public ApiResponse<?> getRequests(
             @RequestParam(required = false, defaultValue = "") String keyword,
                         @RequestParam(required = false) UUID requesterId,
+                        @RequestParam(required = false) RequestScope scope,
             @RequestParam(required = false, defaultValue = "1") int page,
             @RequestParam(required = false, defaultValue = "10") int size,
             @RequestParam(required = false, defaultValue = "true") boolean pagination) {
         if (pagination) {
             return ApiResponse.<PageResponse<MaintenanceRequestResponse>>builder()
-                                        .result(maintenanceRequestService.getRequests(keyword, page, size, requesterId))
+                                                                                .result(maintenanceRequestService.getRequests(keyword, page, size, requesterId, scope))
                     .build();
         } else {
             return ApiResponse.<List<MaintenanceRequestResponse>>builder()
-                                        .result(maintenanceRequestService.getAllRequests(keyword, requesterId))
+                                                                                .result(maintenanceRequestService.getAllRequests(keyword, requesterId, scope))
                     .build();
         }
     }

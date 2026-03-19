@@ -4,6 +4,11 @@ import com.buildings.entity.*;
 import com.buildings.entity.enums.ApartmentStatus;
 import com.buildings.entity.enums.MeterReadingStatus;
 import com.buildings.entity.enums.BillingMethod;
+import com.buildings.entity.enums.QuotationStatus;
+import com.buildings.entity.enums.RequestScope;
+import com.buildings.entity.enums.RequestStatus;
+import com.buildings.exception.AppException;
+import com.buildings.exception.ErrorCode;
 import com.buildings.mapper.MonthlyBillMapper;
 import com.buildings.repository.*;
 import com.buildings.service.MonthlyBillService;
@@ -28,6 +33,8 @@ public class MonthlyBillServiceImpl implements MonthlyBillService {
     private final MeterReadingRepository meterReadingRepository;
     private final MonthlyBillsRepository monthlyBillsRepository;
     private final MonthlyBillMapper monthlyBillMapper;
+    private final MaintenanceRequestRepository maintenanceRequestRepository;
+    private final BillDetailRepository billDetailRepository;
 
     @Override
     public void generateMonthlyBills(YearMonth billingPeriod) {
@@ -72,12 +79,24 @@ public class MonthlyBillServiceImpl implements MonthlyBillService {
         // 1. Process Maintenance Quotations
         List<MaintenanceQuotation> quotations = maintenanceQuotationRepository.findQuotationsForBilling(apartment.getId(), periodStart, periodEnd);
         for (MaintenanceQuotation quotation : quotations) {
-            BillDetail detail = monthlyBillMapper.toBillDetail(quotation);
-            detail.setBill(bill);
-            details.add(detail);
-            
-            subtotal += detail.getAmount();
-            totalAmount += detail.getTotalLine();
+            MaintenanceRequest maintenanceRequest = quotation.getMaintenanceRequest();
+            if (maintenanceRequest == null || maintenanceRequest.getRequestStatus() != RequestStatus.RESIDENT_ACCEPTED) {
+                continue;
+            }
+
+            String requestCode = maintenanceRequest.getCode();
+            if (requestCode != null
+                    && billDetailRepository.existsMaintenanceChargeByApartmentAndRequestCode(apartment.getId(), requestCode)) {
+                continue;
+            }
+
+            List<BillDetail> maintenanceDetails = buildMaintenanceDetails(quotation, requestCode);
+            for (BillDetail detail : maintenanceDetails) {
+                detail.setBill(bill);
+                details.add(detail);
+                subtotal += detail.getAmount();
+                totalAmount += detail.getTotalLine();
+            }
         }
 
         // 2. Process Meter Readings
@@ -154,6 +173,15 @@ public class MonthlyBillServiceImpl implements MonthlyBillService {
         detail.setTotalLine(totalAmount.add(vatAmount).doubleValue());
     }
 
+    private List<BillDetail> buildMaintenanceDetails(MaintenanceQuotation quotation, String requestCode) {
+        if (quotation.getItems() != null && !quotation.getItems().isEmpty()) {
+            return quotation.getItems().stream()
+                    .map(item -> monthlyBillMapper.toBillDetail(item, requestCode))
+                    .toList();
+        }
+        return List.of(monthlyBillMapper.toBillDetail(quotation));
+    }
+
     private org.springframework.data.domain.Pageable createPageable(int page, int size, String sortBy, String unSort) {
         org.springframework.data.domain.Sort sort = org.springframework.data.domain.Sort.unsorted();
         if (sortBy != null && !sortBy.isEmpty()) {
@@ -184,6 +212,109 @@ public class MonthlyBillServiceImpl implements MonthlyBillService {
                     .toList());
         }
         return billDTO;
+    }
+
+    @Override
+    @Transactional
+    public com.buildings.dto.response.bill.BillDTO getPayableMaintenanceBill(java.util.UUID requestId, java.util.UUID residentId) {
+        MaintenanceRequest maintenanceRequest = maintenanceRequestRepository.findById(requestId)
+                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Maintenance request not found"));
+
+        if (maintenanceRequest.getRequester() == null
+                || maintenanceRequest.getRequester().getId() == null
+                || !maintenanceRequest.getRequester().getId().equals(residentId)) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+
+        if (maintenanceRequest.getRequestStatus() != RequestStatus.RESIDENT_ACCEPTED) {
+            return null;
+        }
+
+        String requestCode = maintenanceRequest.getCode();
+        if (requestCode == null || requestCode.isBlank()) {
+            return null;
+        }
+
+        org.springframework.data.domain.Page<MonthlyBills> billPage = findPayableMaintenanceBillPage(residentId, requestCode);
+
+        // Backfill for old accepted requests: if bill is missing, generate/attach maintenance charge on-demand.
+        if (billPage.isEmpty()) {
+            createOrAttachMaintenanceBill(maintenanceRequest);
+            billPage = findPayableMaintenanceBillPage(residentId, requestCode);
+        }
+
+        if (billPage.isEmpty()) {
+            return null;
+        }
+
+        MonthlyBills bill = billPage.getContent().get(0);
+        return monthlyBillMapper.toDto(bill);
+    }
+
+    private org.springframework.data.domain.Page<MonthlyBills> findPayableMaintenanceBillPage(java.util.UUID residentId, String requestCode) {
+        return monthlyBillsRepository.findByResidentAndMaintenanceRequestCode(
+                residentId,
+                requestCode,
+                org.springframework.data.domain.PageRequest.of(0, 1)
+        );
+    }
+
+    private void createOrAttachMaintenanceBill(MaintenanceRequest maintenanceRequest) {
+        if (maintenanceRequest.getScope() != RequestScope.PRIVATE || maintenanceRequest.getApartment() == null) {
+            return;
+        }
+
+        MaintenanceQuotation approvedQuotation = maintenanceQuotationRepository
+                .findFirstByMaintenanceRequestIdAndStatusOrderByCreatedAtDesc(
+                        maintenanceRequest.getId(),
+                        QuotationStatus.APPROVED)
+                .orElse(null);
+
+        if (approvedQuotation == null || approvedQuotation.getTotalAmount() == null) {
+            return;
+        }
+
+        String requestCode = maintenanceRequest.getCode();
+        if (requestCode != null
+                && billDetailRepository.existsMaintenanceChargeByApartmentAndRequestCode(
+                maintenanceRequest.getApartment().getId(),
+                requestCode)) {
+            return;
+        }
+
+        YearMonth now = YearMonth.now();
+        String periodCode = now.toString();
+        MonthlyBills bill = monthlyBillsRepository
+                .findFirstByApartmentIdAndPeriodCode(maintenanceRequest.getApartment().getId(), periodCode)
+                .orElseGet(() -> MonthlyBills.builder()
+                        .apartment(maintenanceRequest.getApartment())
+                        .periodFrom(now.atDay(1).atStartOfDay())
+                        .periodTo(now.atEndOfMonth().atTime(23, 59, 59))
+                        .periodCode(periodCode)
+                        .status("UNPAID")
+                        .issuedAt(LocalDateTime.now())
+                        .dueDate(LocalDateTime.now().plusDays(10))
+                        .locked(false)
+                        .details(new ArrayList<>())
+                        .build());
+
+        if (bill.getDetails() == null) {
+            bill.setDetails(new ArrayList<>());
+        }
+
+        List<BillDetail> maintenanceDetails = buildMaintenanceDetails(approvedQuotation, requestCode);
+        for (BillDetail detail : maintenanceDetails) {
+            detail.setBill(bill);
+            bill.getDetails().add(detail);
+        }
+
+        double subtotal = bill.getDetails().stream().mapToDouble(d -> d.getAmount() != null ? d.getAmount() : 0.0).sum();
+        double total = bill.getDetails().stream().mapToDouble(d -> d.getTotalLine() != null ? d.getTotalLine() : 0.0).sum();
+        bill.setSubtotal(subtotal);
+        bill.setTaxTotal(total - subtotal);
+        bill.setTotalAmount(total);
+
+        monthlyBillsRepository.save(bill);
     }
 
     @Override

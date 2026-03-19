@@ -18,9 +18,18 @@ import java.util.UUID;
 public interface PaymentTransactionRepository extends JpaRepository<PaymentTransaction, UUID> {
 
     // Tránh crash khi có nhiều PENDING (race condition)
-    Optional<PaymentTransaction> findFirstByBillIdAndStatusOrderByCreatedAtDesc(UUID billId, PaymentTransactionStatus status);
+        Optional<PaymentTransaction> findFirstByBillIdAndStatusAndReferenceNoIsNullOrderByCreatedAtDesc(UUID billId, PaymentTransactionStatus status);
+
+        Optional<PaymentTransaction> findFirstByBillIdAndStatusAndReferenceNoOrderByCreatedAtDesc(
+                        UUID billId,
+                        PaymentTransactionStatus status,
+                        String referenceNo
+        );
 
     List<PaymentTransaction> findAllByBillIdAndStatus(UUID billId, PaymentTransactionStatus status);
+
+        @Query("SELECT COALESCE(SUM(t.amount), 0) FROM PaymentTransaction t WHERE t.bill.id = :billId AND t.status = 'SUCCESS'")
+        BigDecimal getPaidAmountByBillId(@Param("billId") UUID billId);
 
     Optional<PaymentTransaction> findByOrderCode(Long orderCode);
 
