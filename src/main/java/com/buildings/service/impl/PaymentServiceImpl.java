@@ -68,7 +68,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional
     public PaymentResponse createPayment(UUID billId) {
-        MonthlyBills bill = monthlyBillsRepository.findById(billId)
+        MonthlyBills bill = monthlyBillsRepository.findByIdForUpdate(billId)
                 .orElseThrow(() -> new AppException(ErrorCode.BILL_NOT_FOUND));
 
         // Nếu đã có PENDING transaction → trả lại checkoutUrl cũ (tránh tạo mới khi reload)
@@ -79,18 +79,13 @@ public class PaymentServiceImpl implements PaymentService {
             PaymentTransaction existing = existingPending.get();
             log.info("Bill {} already has a PENDING transaction, returning existing checkout URL", billId);
 
-            String lastRejectedReason = paymentTransactionRepository
-                    .findFirstByBillIdAndStatusOrderByCreatedAtDesc(billId, PaymentTransactionStatus.CANCELLED)
-                    .map(PaymentTransaction::getRejectedReason)
-                    .orElse(null);
-
             return PaymentResponse.builder()
                     .transactionId(existing.getId())
                     .billId(billId)
                     .amount(existing.getAmount().longValue())
                     .checkoutUrl(existing.getCheckoutUrl())
                     .qrCode(existing.getQrCode())
-                    .rejectedReason(lastRejectedReason)
+                    .rejectedReason(existing.getRejectedReason())
                     .build();
         }
 
@@ -135,19 +130,13 @@ public class PaymentServiceImpl implements PaymentService {
         paymentTransactionRepository.save(transaction);
         log.info("Created new PayOS payment for bill {}, orderCode {}", billId, orderCode);
 
-        // Lấy rejectedReason từ lần bị từ chối gần nhất (nếu có) để frontend hiển thị
-        String lastRejectedReason = paymentTransactionRepository
-                .findFirstByBillIdAndStatusOrderByCreatedAtDesc(billId, PaymentTransactionStatus.CANCELLED)
-                .map(PaymentTransaction::getRejectedReason)
-                .orElse(null);
-
         return PaymentResponse.builder()
                 .transactionId(transaction.getId())
                 .billId(billId)
                 .amount(amount)
                 .checkoutUrl(payosResponse.getCheckoutUrl())
                 .qrCode(payosResponse.getQrCode())
-                .rejectedReason(lastRejectedReason)
+                .rejectedReason(null)
                 .build();
     }
 
@@ -373,7 +362,7 @@ public class PaymentServiceImpl implements PaymentService {
             throw new AppException(ErrorCode.TRANSACTION_NOT_AWAITING_PROOF);
         }
 
-        transaction.setStatus(PaymentTransactionStatus.CANCELLED);
+        transaction.setStatus(PaymentTransactionStatus.PENDING);
         transaction.setRejectedReason(reason);
         transaction.setVerifiedAt(LocalDateTime.now());
         paymentTransactionRepository.save(transaction);

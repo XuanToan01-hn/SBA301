@@ -1,9 +1,11 @@
 package com.buildings.repository;
 
 import com.buildings.entity.MonthlyBills;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -16,6 +18,10 @@ public interface MonthlyBillsRepository extends JpaRepository<MonthlyBills, UUID
     
     @Query("SELECT mb FROM MonthlyBills mb LEFT JOIN FETCH mb.details WHERE mb.id = :id")
     Optional<MonthlyBills> findByIdWithDetails(@Param("id") UUID id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT mb FROM MonthlyBills mb WHERE mb.id = :id")
+    Optional<MonthlyBills> findByIdForUpdate(@Param("id") UUID id);
 
     Page<MonthlyBills> findByPeriodCode(String periodCode, Pageable pageable);
 
