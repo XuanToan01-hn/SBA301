@@ -27,9 +27,12 @@ public class MonthlyBillController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String sortBy,
-            @RequestParam(required = false) String unSort) {
+            @RequestParam(required = false) String unSort,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String periodCode,
+            @RequestParam(required = false) String buildingCode) {
         
-        PageResponse<BillDTO> bills = monthlyBillService.getAllBills(page, size, sortBy, unSort);
+        PageResponse<BillDTO> bills = monthlyBillService.getAllBillsWithFilters(status, periodCode, buildingCode, page, size, sortBy, unSort);
         return ResponseEntity.ok(ApiResponse.<PageResponse<BillDTO>>builder()
                 .result(bills)
                 .message("Fetched all bills successfully")

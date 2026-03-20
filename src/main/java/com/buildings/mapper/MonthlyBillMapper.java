@@ -15,6 +15,7 @@ public interface MonthlyBillMapper {
 
     @Mapping(target = "apartmentId", source = "apartment.id")
     @Mapping(target = "apartmentCode", source = "apartment.code")
+    @Mapping(target = "buildingCode", source = "apartment.building.code")
     BillDTO toDto(MonthlyBills entity);
 
     BillDetailDTO toDetailDto(BillDetail entity);

@@ -44,4 +44,13 @@ public interface MonthlyBillsRepository extends JpaRepository<MonthlyBills, UUID
             @Param("periodCode") String periodCode, 
             @Param("apartmentCode") String apartmentCode, 
             Pageable pageable);
+    @Query("SELECT DISTINCT b FROM MonthlyBills b JOIN b.apartment a JOIN a.building bg " +
+           "WHERE (:status IS NULL OR b.status = :status) " +
+           "AND (:periodCode IS NULL OR b.periodCode = :periodCode) " +
+           "AND (:buildingCode IS NULL OR bg.code = :buildingCode)")
+    Page<MonthlyBills> findAllWithFilters(
+            @Param("status") String status,
+            @Param("periodCode") String periodCode,
+            @Param("buildingCode") String buildingCode,
+            Pageable pageable);
 }
