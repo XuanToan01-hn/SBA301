@@ -57,7 +57,6 @@ public interface ApartmentRepository extends JpaRepository<Apartment, UUID> {
             "AND r.movedOutAt IS NULL")
     Page<Apartment> findApartmentsWithOwner(@Param("buildingId") UUID buildingId, Pageable pageable);
 
-
     List<Apartment> findByStatus(ApartmentStatus status);
     @Query("SELECT DISTINCT a FROM Apartment a " +
             "JOIN FETCH a.building " +

@@ -29,7 +29,8 @@ public enum ErrorCode {
     APARTMENT_FULL(1018, "Apartment full. Maximum residents: {max}", HttpStatus.BAD_REQUEST),
     RESIDENT_NOT_FOUND(1019, "Resident not found", HttpStatus.NOT_FOUND),
     DEACTIVE(1020, "Acccount is deactive", HttpStatus.BAD_REQUEST),
-
+    INVALID_AREA_SIZE(1021,"Invalid area size", HttpStatus.BAD_REQUEST),
+    AREA_ORDER_INVALID(1022, "Invalid area order", HttpStatus.BAD_REQUEST),
 
     SERVICE_NOT_FOUND(2001, "Service not found", HttpStatus.NOT_FOUND),
     SERVICE_CODE_EXISTED(2002, "Service code already exists", HttpStatus.BAD_REQUEST),

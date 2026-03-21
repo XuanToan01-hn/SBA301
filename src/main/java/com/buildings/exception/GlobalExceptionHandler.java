@@ -40,24 +40,34 @@ public class GlobalExceptionHandler {
                              .body(apiResponse);
     }
 
-    // 3. Xử lý lỗi Validation (@Valid)
     @ExceptionHandler(value = MethodArgumentNotValidException.class)
     ResponseEntity<ApiResponse<?>> handlingValidation(MethodArgumentNotValidException exception) {
-        String enumKey = exception.getFieldError().getDefaultMessage();
-        
+        // 1. Lấy thông tin lỗi từ Field lỗi đầu tiên
+        var fieldError = exception.getFieldError();
+        if (fieldError == null) return ResponseEntity.badRequest().build();
+
+        String messageKey = fieldError.getDefaultMessage(); // Đây là chuỗi bạn viết ở "message = ..."
+
+        // 2. Khởi tạo mặc định
         ErrorCode errorCode = ErrorCode.INVALID_KEY;
-        
+        String finalMessage = messageKey; // Mặc định dùng luôn message từ DTO
+
         try {
-            errorCode = ErrorCode.valueOf(enumKey);
+            // 3. Thử xem messageKey có phải là tên Enum (ví dụ: AREA_ORDER_INVALID) không
+            errorCode = ErrorCode.valueOf(messageKey);
+            finalMessage = errorCode.getMessage(); // Nếu là Enum thì lấy message chuẩn của hệ thống
         } catch (IllegalArgumentException e) {
-            // Nếu không tìm thấy Enum, giữ nguyên INVALID_KEY hoặc lỗi mặc định
+            // 4. Nếu không phải Enum (nó là chuỗi "Building name is required"),
+            // thì errorCode giữ nguyên là 1001 (INVALID_KEY) hoặc một mã lỗi Validation chung.
+            // Nhưng quan trọng nhất: finalMessage vẫn là chuỗi từ DTO.
+            log.debug("Validation message is a custom string, not an Enum: {}", messageKey);
         }
 
         ApiResponse<?> apiResponse = ApiResponse.builder()
                 .code(errorCode.getCode())
-                .message(errorCode.getMessage())
+                .message(finalMessage) // Trả về nội dung bạn viết ở DTO
                 .build();
-        
+
         return ResponseEntity.badRequest().body(apiResponse);
     }
     

@@ -47,7 +47,7 @@ public class BuildingServiceImpl implements BuildingService {
         if (buildingRepository.existsByName(buildingDTO.getName())) {
             throw new AppException(ErrorCode.BUILDING_NAME_ARE_EXIST);
         }
-
+        validateBuildingArea(buildingDTO);
         Building building = buildingMapper.toEntity(buildingDTO);
         building.setApartmentsGenerated(false);
 
@@ -55,6 +55,17 @@ public class BuildingServiceImpl implements BuildingService {
 
         // Tòa nhà mới tạo chưa có căn hộ nên count = 0
         return buildingMapper.toDTO(building, 0L);
+    }
+
+    private void validateBuildingArea(BuildingDTO d) {
+        if (d.getArea1brSqm() <= 0 || d.getArea2brSqm() <= 0 || d.getArea3brSqm() <= 0) {
+            throw new AppException(ErrorCode.INVALID_AREA_SIZE);
+        }
+
+        if (!(d.getArea3brSqm() > d.getArea2brSqm() && d.getArea2brSqm() > d.getArea1brSqm())) {
+            throw new AppException(ErrorCode.AREA_ORDER_INVALID);
+            // Bạn cần thêm ErrorCode: "Diện tích phải theo thứ tự 3BR > 2BR > 1BR"
+        }
     }
 
     @Override
