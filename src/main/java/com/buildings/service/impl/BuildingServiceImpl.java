@@ -47,6 +47,10 @@ public class BuildingServiceImpl implements BuildingService {
         if (buildingRepository.existsByName(buildingDTO.getName())) {
             throw new AppException(ErrorCode.BUILDING_NAME_ARE_EXIST);
         }
+
+        if(buildingDTO.getName().trim().equals("")){
+            throw new AppException(ErrorCode.Name_b);
+        }
         validateBuildingArea(buildingDTO);
         Building building = buildingMapper.toEntity(buildingDTO);
         building.setApartmentsGenerated(false);
