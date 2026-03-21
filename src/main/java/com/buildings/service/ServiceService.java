@@ -20,6 +20,8 @@ public interface ServiceService {
     ServiceResponse getById(UUID id);
 
     ServiceResponse getByIdWithTariffs(UUID id);
+    
+    com.buildings.dto.PageResponse<ServiceResponse> getAllPaginated(int page, int size);
 
     List<ServiceResponse> getAll();
 

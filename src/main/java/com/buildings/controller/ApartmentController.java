@@ -147,6 +147,17 @@ public class ApartmentController {
                         .build()
         );
     }
+    @GetMapping("/building/{buildingId}/floors")
+    @Operation(summary = "Lấy danh sách các tầng có trong tòa nhà")
+    public ResponseEntity<ApiResponse<List<Integer>>> getFloors(@PathVariable UUID buildingId) {
+        return ResponseEntity.ok(
+                ApiResponse.<List<Integer>>builder()
+                        .result(apartmentService.getDistinctFloors(buildingId))
+                        .message("Get floors successfully")
+                        .build()
+        );
+    }
+
     @PostMapping("/assign-resident")
     @Operation(
             summary = "Gán cư dân vào căn hộ",

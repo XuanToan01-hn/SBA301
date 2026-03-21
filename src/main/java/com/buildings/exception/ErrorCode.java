@@ -40,6 +40,8 @@ public enum ErrorCode {
             HttpStatus.BAD_REQUEST),
     SERVICE_ALREADY_INACTIVE(2006, "Dịch vụ đã bị vô hiệu hóa", HttpStatus.BAD_REQUEST),
     SERVICE_ALREADY_ACTIVE(2007, "Dịch vụ đã đang hoạt động", HttpStatus.BAD_REQUEST),
+    SERVICE_NAME_INVALID(2008, "Tên dịch vụ không được chứa ký tự đặc biệt.", HttpStatus.BAD_REQUEST),
+    SERVICE_UNIT_INVALID(2009, "Đơn vị dịch vụ không được chứa các ký tự đặc biệt.", HttpStatus.BAD_REQUEST),
 
     // Meter Reading errors (3xxx)
     METER_READING_NOT_FOUND(3001, "Không tìm thấy chỉ số công tơ", HttpStatus.NOT_FOUND),

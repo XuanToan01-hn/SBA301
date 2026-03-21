@@ -21,6 +21,9 @@ import java.util.Optional;
 @Repository
 public interface ApartmentRepository extends JpaRepository<Apartment, UUID> {
 
+    @Query("SELECT DISTINCT a.floorNumber FROM Apartment a WHERE a.building.id = :buildingId ORDER BY a.floorNumber ASC")
+    List<Integer> findDistinctFloorsByBuildingId(@Param("buildingId") UUID buildingId);
+
     @Query("SELECT a FROM Apartment a " +
             "LEFT JOIN FETCH a.building " +
             "LEFT JOIN FETCH a.residents r " +

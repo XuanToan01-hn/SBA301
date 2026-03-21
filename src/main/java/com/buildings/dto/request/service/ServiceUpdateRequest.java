@@ -1,6 +1,7 @@
 package com.buildings.dto.request.service;
 
 import com.buildings.entity.enums.BillingMethod;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,9 +15,11 @@ import lombok.NoArgsConstructor;
 public class ServiceUpdateRequest {
 
     @Size(max = 100, message = "Service name must not exceed 100 characters")
+    @Pattern(regexp = "^[\\p{L}\\p{N}\\s]+$", message = "SERVICE_NAME_INVALID")
     private String name;
 
     @Size(max = 20, message = "Unit must not exceed 20 characters")
+    @Pattern(regexp = "^[\\p{L}\\p{N}\\s]*$", message = "SERVICE_UNIT_INVALID")
     private String unit;
 
     private Boolean isRecurring;
