@@ -32,9 +32,11 @@ public class PaymentController {
 
     // Tạo payment link
     @PostMapping("/{billId}")
-    public ApiResponse<PaymentResponse> createPayment(@PathVariable UUID billId) {
+        public ApiResponse<PaymentResponse> createPayment(
+                        @PathVariable UUID billId,
+                        @RequestParam(required = false) UUID maintenanceRequestId) {
         return ApiResponse.<PaymentResponse>builder()
-                .result(paymentService.createPayment(billId))
+                                .result(paymentService.createPayment(billId, maintenanceRequestId))
                 .build();
     }
 

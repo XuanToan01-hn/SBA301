@@ -19,6 +19,20 @@ public interface MonthlyBillsRepository extends JpaRepository<MonthlyBills, UUID
 
     Page<MonthlyBills> findByPeriodCode(String periodCode, Pageable pageable);
 
+    Optional<MonthlyBills> findFirstByApartmentIdAndPeriodCode(UUID apartmentId, String periodCode);
+
+    @Query("SELECT DISTINCT b FROM MonthlyBills b " +
+           "JOIN b.details d " +
+           "JOIN b.apartment a " +
+           "JOIN a.residents r " +
+           "WHERE r.user.id = :userId " +
+           "AND LOWER(d.description) LIKE LOWER(CONCAT('%', :requestCode, '%')) " +
+           "ORDER BY b.issuedAt DESC")
+    Page<MonthlyBills> findByResidentAndMaintenanceRequestCode(
+           @Param("userId") UUID userId,
+           @Param("requestCode") String requestCode,
+           Pageable pageable);
+
     @Query("SELECT DISTINCT b FROM MonthlyBills b JOIN b.apartment a JOIN a.residents r WHERE r.user.id = :userId " +
            "AND (:status IS NULL OR b.status = :status) " +
            "AND (:periodCode IS NULL OR b.periodCode = :periodCode) " +
@@ -29,5 +43,14 @@ public interface MonthlyBillsRepository extends JpaRepository<MonthlyBills, UUID
             @Param("status") String status, 
             @Param("periodCode") String periodCode, 
             @Param("apartmentCode") String apartmentCode, 
+            Pageable pageable);
+    @Query("SELECT DISTINCT b FROM MonthlyBills b JOIN b.apartment a JOIN a.building bg " +
+           "WHERE (:status IS NULL OR b.status = :status) " +
+           "AND (:periodCode IS NULL OR b.periodCode = :periodCode) " +
+           "AND (:buildingCode IS NULL OR bg.code = :buildingCode)")
+    Page<MonthlyBills> findAllWithFilters(
+            @Param("status") String status,
+            @Param("periodCode") String periodCode,
+            @Param("buildingCode") String buildingCode,
             Pageable pageable);
 }

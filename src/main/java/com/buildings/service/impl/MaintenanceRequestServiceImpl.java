@@ -58,19 +58,14 @@ public class MaintenanceRequestServiceImpl implements MaintenanceRequestService 
         log.info("Creating maintenance request: {}", request.getTitle());
 
         MaintenanceRequest entity = maintenanceMapper.toMaintenanceRequest(request);
+        if (entity.getScope() == null) {
+            entity.setScope(RequestScope.PRIVATE);
+        }
         entity.setCode(generateCode());
         entity.setRequestStatus(RequestStatus.PENDING);
         entity.setRequester(getCurrentUserOrThrow());
 
-        if (request.getBuildingId() != null) {
-            Building building = buildingRepository.findById(request.getBuildingId()).orElse(null);
-            entity.setBuilding(building);
-        }
-
-        if (request.getScope() == RequestScope.PRIVATE && request.getApartmentId() != null) {
-            Apartment apartment = apartmentRepository.findById(request.getApartmentId()).orElse(null);
-            entity.setApartment(apartment);
-        }
+        applyScopeBindingOnCreate(entity, request);
 
         MaintenanceRequest saved = maintenanceRequestRepository.save(entity);
         logAction(saved.getId(), "CREATE_REQUEST", "Tao yeu cau bao tri: " + saved.getTitle());
@@ -84,6 +79,10 @@ public class MaintenanceRequestServiceImpl implements MaintenanceRequestService 
         MaintenanceRequest entity = findRequestOrThrow(id);
         maintenanceMapper.updateMaintenanceRequest(entity, request);
 
+        if (entity.getScope() == RequestScope.PUBLIC) {
+            entity.setApartment(null);
+        }
+
         if (request.getStaffId() != null) {
             User staff = userRepository.findById(request.getStaffId())
                     .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Staff not found"));
@@ -96,10 +95,11 @@ public class MaintenanceRequestServiceImpl implements MaintenanceRequestService 
     }
 
     @Override
-    public PageResponse<MaintenanceRequestResponse> getRequests(String keyword, int page, int size, UUID requesterId) {
+        public PageResponse<MaintenanceRequestResponse> getRequests(String keyword, int page, int size, UUID requesterId, RequestScope scope) {
         Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
         Specification<MaintenanceRequest> spec = Specification.where(buildKeywordSpec(keyword))
-                .and(buildRequesterIdSpec(requesterId));
+            .and(buildRequesterIdSpec(requesterId))
+            .and(buildScopeSpec(scope));
         Page<MaintenanceRequest> pageResult = maintenanceRequestRepository.findAll(spec, pageable);
         List<MaintenanceRequestResponse> responseList = pageResult.getContent().stream()
                 .map(maintenanceMapper::toMaintenanceRequestResponse)
@@ -108,9 +108,10 @@ public class MaintenanceRequestServiceImpl implements MaintenanceRequestService 
     }
 
     @Override
-    public List<MaintenanceRequestResponse> getAllRequests(String keyword, UUID requesterId) {
+        public List<MaintenanceRequestResponse> getAllRequests(String keyword, UUID requesterId, RequestScope scope) {
         Specification<MaintenanceRequest> spec = Specification.where(buildKeywordSpec(keyword))
-                .and(buildRequesterIdSpec(requesterId));
+            .and(buildRequesterIdSpec(requesterId))
+            .and(buildScopeSpec(scope));
         return maintenanceRequestRepository.findAll(spec, Sort.by("createdAt").descending()).stream()
                 .map(maintenanceMapper::toMaintenanceRequestResponse)
                 .collect(Collectors.toList());
@@ -170,6 +171,13 @@ public class MaintenanceRequestServiceImpl implements MaintenanceRequestService 
         return (root, query, cb) -> cb.equal(root.get("requester").get("id"), requesterId);
     }
 
+    private Specification<MaintenanceRequest> buildScopeSpec(RequestScope scope) {
+        if (scope == null) {
+            return null;
+        }
+        return (root, query, cb) -> cb.equal(root.get("scope"), scope);
+    }
+
     private void logAction(UUID requestId, String action, String note) {
         maintenanceLogRepository.save(MaintenanceLog.builder()
                 .requestId(requestId).action(action).note(note).build());
@@ -187,5 +195,38 @@ public class MaintenanceRequestServiceImpl implements MaintenanceRequestService 
 
     private String generateCode() {
         return "REQ-" + System.currentTimeMillis();
+    }
+
+    private void applyScopeBindingOnCreate(MaintenanceRequest entity, MaintenanceRequestCreateRequest request) {
+        if (entity.getScope() == RequestScope.PUBLIC) {
+            if (request.getBuildingId() == null) {
+                throw new AppException(ErrorCode.INVALID_KEY, "PUBLIC request requires buildingId");
+            }
+
+            Building building = buildingRepository.findById(request.getBuildingId())
+                    .orElseThrow(() -> new AppException(ErrorCode.BUILDING_NOT_FOUND));
+            entity.setBuilding(building);
+            entity.setApartment(null);
+            return;
+        }
+
+        if (request.getApartmentId() == null) {
+            throw new AppException(ErrorCode.INVALID_KEY, "PRIVATE request requires apartmentId");
+        }
+
+        Apartment apartment = apartmentRepository.findById(request.getApartmentId())
+                .orElseThrow(() -> new AppException(ErrorCode.APARTMENT_NOT_FOUND));
+        entity.setApartment(apartment);
+
+        if (request.getBuildingId() != null) {
+            Building building = buildingRepository.findById(request.getBuildingId())
+                    .orElseThrow(() -> new AppException(ErrorCode.BUILDING_NOT_FOUND));
+            if (apartment.getBuilding() != null && !apartment.getBuilding().getId().equals(building.getId())) {
+                throw new AppException(ErrorCode.INVALID_KEY, "Apartment does not belong to provided building");
+            }
+            entity.setBuilding(building);
+        } else {
+            entity.setBuilding(apartment.getBuilding());
+        }
     }
 }

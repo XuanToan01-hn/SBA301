@@ -12,4 +12,7 @@ public class MaintenanceResourceResponse {
     private String name;
     private String url;
     private ResourceType resourceType;
+    private UUID uploadedById;
+    private String uploadedByName;
+    private String uploadedByRole;
 }

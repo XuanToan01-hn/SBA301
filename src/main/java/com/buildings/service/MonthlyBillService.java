@@ -11,7 +11,11 @@ public interface MonthlyBillService {
 
     PageResponse<BillDTO> getAllBills(int page, int size, String sortBy, String unSort);
 
+    PageResponse<BillDTO> getAllBillsWithFilters(String status, String periodCode, String buildingCode, int page, int size, String sortBy, String unSort);
+
     BillDTO getBillDetails(UUID id);
+
+    BillDTO getPayableMaintenanceBill(UUID requestId, UUID residentId);
 
     PageResponse<BillDTO> getBillsForCurrentMonth(int page, int size, String sortBy, String unSort);
 

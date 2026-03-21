@@ -3,6 +3,7 @@ package com.buildings.mapper;
 import com.buildings.dto.request.maintenance.*;
 import com.buildings.dto.response.maintenance.*;
 import com.buildings.entity.*;
+import com.buildings.entity.Role;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
@@ -88,7 +89,30 @@ public interface MaintenanceMapper {
     @Mapping(target = "item", ignore = true)
     MaintenanceResource toMaintenanceResource(MaintenanceResourceRequest request);
 
+    @Mapping(target = "uploadedById", source = "user.id")
+    @Mapping(target = "uploadedByName", source = "user.fullName")
+    @Mapping(target = "uploadedByRole", expression = "java(resolveUploaderRole(entity))")
     MaintenanceResourceResponse toMaintenanceResourceResponse(MaintenanceResource entity);
+
+    default String resolveUploaderRole(MaintenanceResource resource) {
+        if (resource == null || resource.getUser() == null || resource.getUser().getUserRoles() == null) {
+            return null;
+        }
+
+        boolean hasStaff = resource.getUser().getUserRoles().stream()
+                .anyMatch(ur -> ur.getRole() != null && Role.ROLE_STAFF.equalsIgnoreCase(ur.getRole().getCode()));
+        if (hasStaff) {
+            return Role.ROLE_STAFF;
+        }
+
+        boolean hasResident = resource.getUser().getUserRoles().stream()
+                .anyMatch(ur -> ur.getRole() != null && Role.ROLE_RESIDENT.equalsIgnoreCase(ur.getRole().getCode()));
+        if (hasResident) {
+            return Role.ROLE_RESIDENT;
+        }
+
+        return null;
+    }
 
     // ===================== MaintenanceLog =====================
 

@@ -82,4 +82,5 @@ src/main/resources/application.yaml
 .idea/
 
 uploads/
+minio-data/
 .agents/
