@@ -32,6 +32,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -72,7 +73,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional
         public PaymentResponse createPayment(UUID billId, UUID maintenanceRequestId) {
-        MonthlyBills bill = monthlyBillsRepository.findByIdWithDetails(billId)
+        MonthlyBills bill = monthlyBillsRepository.findByIdForUpdateWithDetails(billId)
                 .orElseThrow(() -> new AppException(ErrorCode.BILL_NOT_FOUND));
 
         String paymentReference = null;
@@ -180,10 +181,54 @@ public class PaymentServiceImpl implements PaymentService {
                 .qrCode(payosResponse.getQrCode())
                 .build();
 
-        paymentTransactionRepository.save(transaction);
-        log.info("Created new PayOS payment for bill {}, orderCode {}", billId, orderCode);
+        // Try-catch block to handle race condition
+        try {
+            paymentTransactionRepository.save(transaction);
+            log.info("Created new PayOS payment for bill {}, orderCode {}", billId, orderCode);
+        } catch (DataIntegrityViolationException e) {
+            // Race condition: 2 requests attempted to create transaction simultaneously
+            log.warn("Race condition detected for bill {}. Returning existing PENDING transaction", billId);
+            
+            Optional<PaymentTransaction> existingAfterRaceCondition = paymentReference == null
+                ? paymentTransactionRepository.findFirstByBillIdAndStatusAndReferenceNoIsNullOrderByCreatedAtDesc(
+                    billId,
+                    PaymentTransactionStatus.PENDING)
+                : paymentTransactionRepository.findFirstByBillIdAndStatusAndReferenceNoOrderByCreatedAtDesc(
+                    billId,
+                    PaymentTransactionStatus.PENDING,
+                    paymentReference);
 
-        // Lấy rejectedReason từ lần bị từ chối gần nhất (nếu có) để frontend hiển thị
+            if (existingAfterRaceCondition.isPresent()) {
+                PaymentTransaction existing = existingAfterRaceCondition.get();
+                String rejectedReason = paymentReference == null
+                    ? paymentTransactionRepository
+                    .findFirstByBillIdAndStatusAndReferenceNoIsNullOrderByCreatedAtDesc(
+                        billId,
+                        PaymentTransactionStatus.CANCELLED)
+                    .map(PaymentTransaction::getRejectedReason)
+                    .orElse(null)
+                    : paymentTransactionRepository
+                    .findFirstByBillIdAndStatusAndReferenceNoOrderByCreatedAtDesc(
+                        billId,
+                        PaymentTransactionStatus.CANCELLED,
+                        paymentReference)
+                    .map(PaymentTransaction::getRejectedReason)
+                    .orElse(null);
+
+                return PaymentResponse.builder()
+                        .transactionId(existing.getId())
+                        .billId(billId)
+                        .amount(existing.getAmount().longValue())
+                        .checkoutUrl(existing.getCheckoutUrl())
+                        .qrCode(existing.getQrCode())
+                        .rejectedReason(rejectedReason)
+                        .build();
+            }
+            
+            throw e; // Re-throw if we couldn't find existing transaction
+        }
+
+        // Get last rejected reason if exists
         String lastRejectedReason = paymentReference == null
             ? paymentTransactionRepository
             .findFirstByBillIdAndStatusAndReferenceNoIsNullOrderByCreatedAtDesc(

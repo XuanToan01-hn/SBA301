@@ -23,6 +23,10 @@ public interface MonthlyBillsRepository extends JpaRepository<MonthlyBills, UUID
     @Query("SELECT mb FROM MonthlyBills mb WHERE mb.id = :id")
     Optional<MonthlyBills> findByIdForUpdate(@Param("id") UUID id);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT mb FROM MonthlyBills mb LEFT JOIN FETCH mb.details WHERE mb.id = :id")
+    Optional<MonthlyBills> findByIdForUpdateWithDetails(@Param("id") UUID id);
+
     Page<MonthlyBills> findByPeriodCode(String periodCode, Pageable pageable);
 
     Optional<MonthlyBills> findFirstByApartmentIdAndPeriodCode(UUID apartmentId, String periodCode);
