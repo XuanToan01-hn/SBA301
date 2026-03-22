@@ -16,6 +16,7 @@ public class BillDTO {
     private UUID id;
     private UUID apartmentId;
     private String apartmentCode;
+    private String buildingCode;
     private String periodCode;
     private LocalDateTime periodFrom;
     private LocalDateTime periodTo;

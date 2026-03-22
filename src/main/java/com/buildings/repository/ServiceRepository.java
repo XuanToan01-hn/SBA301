@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +26,9 @@ public interface ServiceRepository extends JpaRepository<Service, UUID> {
 
     @Query("SELECT s FROM Service s WHERE (s.isDeleted = false OR s.isDeleted IS NULL) AND s.isActive = true")
     List<Service> findAllActive();
+
+    @Query("SELECT s FROM Service s WHERE s.isDeleted = false OR s.isDeleted IS NULL")
+    Page<Service> findAllNotDeleted(Pageable pageable);
 
     @Query("SELECT s FROM Service s LEFT JOIN FETCH s.tariffs WHERE s.id = :id")
     Optional<Service> findByIdWithTariffs(@Param("id") UUID id);

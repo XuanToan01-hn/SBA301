@@ -147,6 +147,17 @@ public class ApartmentController {
                         .build()
         );
     }
+    @GetMapping("/building/{buildingId}/floors")
+    @Operation(summary = "Lấy danh sách các tầng có trong tòa nhà")
+    public ResponseEntity<ApiResponse<List<Integer>>> getFloors(@PathVariable UUID buildingId) {
+        return ResponseEntity.ok(
+                ApiResponse.<List<Integer>>builder()
+                        .result(apartmentService.getDistinctFloors(buildingId))
+                        .message("Get floors successfully")
+                        .build()
+        );
+    }
+
     @PostMapping("/assign-resident")
     @Operation(
             summary = "Gán cư dân vào căn hộ",
@@ -191,7 +202,7 @@ public class ApartmentController {
     @GetMapping("/{apartmentId}/history")
     @Operation(
             summary = "Lịch sử cư trú căn hộ",
-            description = "Lấy danh sách phân trang tất cả người đã và đang ở. VD: ?page=0&size=10&sort=assignedAt,desc&type=OWNER"
+            description = "Lấy danh sách phân trang tất cả người đã và đang ở"
     )
     public ResponseEntity<ApiResponse<Page<ApartmentResidentResponse>>> getHistory(
             @PathVariable UUID apartmentId,

@@ -31,5 +31,6 @@ public interface AparmentService {
     );
     Page<ApartmentResponse> getApartmentsWithOwner(UUID buildingId, Pageable pageable);
     List<ApartmentResponse> getApartmentsByResidentEmail(String email);
+    List<Integer> getDistinctFloors(UUID buildingId);
     void moveOut(UUID residentId);
 }

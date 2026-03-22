@@ -201,6 +201,15 @@ public class MonthlyBillServiceImpl implements MonthlyBillService {
     }
 
     @Override
+    public com.buildings.dto.PageResponse<com.buildings.dto.response.bill.BillDTO> getAllBillsWithFilters(String status, String periodCode, String buildingCode, int page, int size, String sortBy, String unSort) {
+        String statusParam = (status != null && !status.isBlank()) ? status : null;
+        String periodParam = (periodCode != null && !periodCode.isBlank()) ? periodCode : null;
+        String buildingParam = (buildingCode != null && !buildingCode.isBlank()) ? buildingCode : null;
+        org.springframework.data.domain.Page<MonthlyBills> billPage = monthlyBillsRepository.findAllWithFilters(statusParam, periodParam, buildingParam, createPageable(page, size, sortBy, unSort));
+        return buildPageResponse(billPage);
+    }
+
+    @Override
     public com.buildings.dto.response.bill.BillDTO getBillDetails(java.util.UUID id) {
         MonthlyBills bill = monthlyBillsRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new RuntimeException("Bill not found with ID: " + id));

@@ -21,6 +21,9 @@ import java.util.Optional;
 @Repository
 public interface ApartmentRepository extends JpaRepository<Apartment, UUID> {
 
+    @Query("SELECT DISTINCT a.floorNumber FROM Apartment a WHERE a.building.id = :buildingId ORDER BY a.floorNumber ASC")
+    List<Integer> findDistinctFloorsByBuildingId(@Param("buildingId") UUID buildingId);
+
     @Query("SELECT a FROM Apartment a " +
             "LEFT JOIN FETCH a.building " +
             "LEFT JOIN FETCH a.residents r " +
@@ -56,7 +59,6 @@ public interface ApartmentRepository extends JpaRepository<Apartment, UUID> {
             "AND r.residentType = 'OWNER' " +
             "AND r.movedOutAt IS NULL")
     Page<Apartment> findApartmentsWithOwner(@Param("buildingId") UUID buildingId, Pageable pageable);
-
 
     List<Apartment> findByStatus(ApartmentStatus status);
     @Query("SELECT DISTINCT a FROM Apartment a " +

@@ -38,12 +38,19 @@ public class ServiceController {
         }
 
         @GetMapping
-        public ApiResponse<List<ServiceResponse>> getAll(
-                        @RequestParam(required = false, defaultValue = "false") Boolean activeOnly) {
-                List<ServiceResponse> result = activeOnly
-                                ? serviceService.getAllActive()
-                                : serviceService.getAll();
-                return ApiResponse.<List<ServiceResponse>>builder()
+        public ApiResponse<?> getAll(
+                        @RequestParam(required = false, defaultValue = "false") Boolean activeOnly,
+                        @RequestParam(required = false, defaultValue = "1") int page,
+                        @RequestParam(required = false, defaultValue = "3") int size) {
+                if (Boolean.TRUE.equals(activeOnly)) {
+                        List<ServiceResponse> result = serviceService.getAllActive();
+                        return ApiResponse.<List<ServiceResponse>>builder()
+                                        .result(result)
+                                        .build();
+                }
+                
+                com.buildings.dto.PageResponse<ServiceResponse> result = serviceService.getAllPaginated(page, size);
+                return ApiResponse.<com.buildings.dto.PageResponse<ServiceResponse>>builder()
                                 .result(result)
                                 .build();
         }

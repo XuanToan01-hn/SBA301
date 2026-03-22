@@ -24,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -47,7 +46,8 @@ public class ApartmentServiceImpl implements AparmentService {
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
-        if (residentRepository.existsByUserIdAndApartmentIdAndMovedOutAtIsNull(request.getUserId(), request.getApartmentId())) {
+        if (residentRepository.existsByUserIdAndApartmentIdAndMovedOutAtIsNull(request.getUserId(),
+                request.getApartmentId())) {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
 
@@ -72,6 +72,7 @@ public class ApartmentServiceImpl implements AparmentService {
 
         return mapToResidentResponse(resident);
     }
+
     @Override
     public List<ApartmentResponse> getAllApartments() {
         return apartmentMapper.toResponseList(apartmentRepository.findAll());
@@ -79,7 +80,8 @@ public class ApartmentServiceImpl implements AparmentService {
 
     @Override
     public List<ApartmentResponse> getByBuildingId(UUID buildingId) {
-        return apartmentMapper.toResponseList(apartmentRepository.findByBuildingIdOrderByFloorNumberAscCodeAsc(buildingId));
+        return apartmentMapper
+                .toResponseList(apartmentRepository.findByBuildingIdOrderByFloorNumberAscCodeAsc(buildingId));
     }
 
     @Override
@@ -112,9 +114,9 @@ public class ApartmentServiceImpl implements AparmentService {
                 floorNumber,
                 status,
                 bedroomCount,
-                pageable
-        ).map(apartmentMapper::toResponse);
+                pageable).map(apartmentMapper::toResponse);
     }
+
     @Override
     public Page<ApartmentResponse> getApartmentsWithOwner(UUID buildingId, Pageable pageable) {
         return apartmentRepository.findApartmentsWithOwner(buildingId, pageable).map(apartmentMapper::toResponse);
@@ -134,7 +136,8 @@ public class ApartmentServiceImpl implements AparmentService {
     }
 
     private ApartmentResponse mapToApartmentResponse(Apartment apartment) {
-        if (apartment == null) return null;
+        if (apartment == null)
+            return null;
 
         List<ApartmentResidentResponse> residentDtos = new ArrayList<>();
         if (apartment.getResidents() != null) {
@@ -161,9 +164,9 @@ public class ApartmentServiceImpl implements AparmentService {
     public void moveOut(UUID residentId) {
         ApartmentResident resident = residentRepository.findById(residentId)
                 .orElseThrow(() -> new AppException(ErrorCode.RESIDENT_NOT_FOUND));
-//        if (resident.getMovedOutAt() != null) {
-//            throw new AppException(ErrorCode.ALREADY_MOVED_OUT);
-//        }
+        // if (resident.getMovedOutAt() != null) {
+        // throw new AppException(ErrorCode.ALREADY_MOVED_OUT);
+        // }
         resident.setMovedOutAt(LocalDateTime.now());
         residentRepository.save(resident);
 
@@ -179,6 +182,11 @@ public class ApartmentServiceImpl implements AparmentService {
     }
 
     @Override
+    public List<Integer> getDistinctFloors(UUID buildingId) {
+        return apartmentRepository.findDistinctFloorsByBuildingId(buildingId);
+    }
+
+    @Override
     public Page<ApartmentResidentResponse> getResidencyHistory(UUID apartmentId, ResidentType type, Pageable pageable) {
         if (!apartmentRepository.existsById(apartmentId)) {
             throw new AppException(ErrorCode.APARTMENT_NOT_FOUND);
@@ -188,7 +196,8 @@ public class ApartmentServiceImpl implements AparmentService {
     }
 
     private ApartmentResidentResponse mapToResidentResponse(ApartmentResident resident) {
-        if (resident == null) return null;
+        if (resident == null)
+            return null;
         User user = resident.getUser();
         return ApartmentResidentResponse.builder()
                 .id(resident.getId())

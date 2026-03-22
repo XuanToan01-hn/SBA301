@@ -20,6 +20,9 @@ import com.buildings.repository.ServiceTariffTierRepository;
 import com.buildings.service.ServiceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -76,6 +79,21 @@ public class ServiceServiceImpl implements ServiceService {
                 .ifPresent(tariff -> response.setCurrentTariff(serviceMapper.toTariffResponse(tariff)));
 
         return response;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public com.buildings.dto.PageResponse<ServiceResponse> getAllPaginated(int page, int size) {
+        Pageable pageable = PageRequest.of(page - 1, size);
+        Page<com.buildings.entity.Service> servicePage = serviceRepository.findAllNotDeleted(pageable);
+        
+        return com.buildings.dto.PageResponse.<ServiceResponse>builder()
+                .currentPage(page)
+                .pageSize(size)
+                .totalPages(servicePage.getTotalPages())
+                .totalElements(servicePage.getTotalElements())
+                .data(serviceMapper.toResponseList(servicePage.getContent()))
+                .build();
     }
 
     @Override

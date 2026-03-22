@@ -9,6 +9,7 @@ import com.buildings.entity.enums.UserStatus;
 import com.buildings.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -31,7 +32,7 @@ public class UserController {
             description = "Tạo tài khoản mới cho người dùng (Resident, Staff hoặc Admin tùy cấu hình hệ thống)."
     )
     public ResponseEntity<UserResponse> signup(
-            @RequestBody UserCreateRequest request) {
+            @RequestBody @Valid UserCreateRequest request) {
 
         UserResponse response = userService.createUser(request);
         return ResponseEntity.ok(response);
@@ -73,7 +74,7 @@ public class UserController {
     @Operation(summary = "Cập nhật thông tin người dùng")
     public ResponseEntity<ApiResponse<UserResponse>> update(
             @PathVariable UUID userId,
-            @RequestBody UserUpdateRequest request) {
+            @RequestBody @Valid UserUpdateRequest request) {
 
         request.setId(request.getId());
         return ResponseEntity.ok(
