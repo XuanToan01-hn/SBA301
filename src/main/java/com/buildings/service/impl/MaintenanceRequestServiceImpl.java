@@ -29,6 +29,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -56,18 +58,14 @@ public class MaintenanceRequestServiceImpl implements MaintenanceRequestService 
         log.info("Creating maintenance request: {}", request.getTitle());
 
         MaintenanceRequest entity = maintenanceMapper.toMaintenanceRequest(request);
+        if (entity.getScope() == null) {
+            entity.setScope(RequestScope.PRIVATE);
+        }
         entity.setCode(generateCode());
         entity.setRequestStatus(RequestStatus.PENDING);
+        entity.setRequester(getCurrentUserOrThrow());
 
-        if (request.getBuildingId() != null) {
-            Building building = buildingRepository.findById(request.getBuildingId()).orElse(null);
-            entity.setBuilding(building);
-        }
-
-        if (request.getScope() == RequestScope.PRIVATE && request.getApartmentId() != null) {
-            Apartment apartment = apartmentRepository.findById(request.getApartmentId()).orElse(null);
-            entity.setApartment(apartment);
-        }
+        applyScopeBindingOnCreate(entity, request);
 
         MaintenanceRequest saved = maintenanceRequestRepository.save(entity);
         logAction(saved.getId(), "CREATE_REQUEST", "Tao yeu cau bao tri: " + saved.getTitle());
@@ -81,6 +79,10 @@ public class MaintenanceRequestServiceImpl implements MaintenanceRequestService 
         MaintenanceRequest entity = findRequestOrThrow(id);
         maintenanceMapper.updateMaintenanceRequest(entity, request);
 
+        if (entity.getScope() == RequestScope.PUBLIC) {
+            entity.setApartment(null);
+        }
+
         if (request.getStaffId() != null) {
             User staff = userRepository.findById(request.getStaffId())
                     .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Staff not found"));
@@ -93,9 +95,12 @@ public class MaintenanceRequestServiceImpl implements MaintenanceRequestService 
     }
 
     @Override
-    public PageResponse<MaintenanceRequestResponse> getRequests(String keyword, int page, int size) {
+        public PageResponse<MaintenanceRequestResponse> getRequests(String keyword, int page, int size, UUID requesterId, RequestScope scope) {
         Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
-        Page<MaintenanceRequest> pageResult = maintenanceRequestRepository.findAll(buildKeywordSpec(keyword), pageable);
+        Specification<MaintenanceRequest> spec = Specification.where(buildKeywordSpec(keyword))
+            .and(buildRequesterIdSpec(requesterId))
+            .and(buildScopeSpec(scope));
+        Page<MaintenanceRequest> pageResult = maintenanceRequestRepository.findAll(spec, pageable);
         List<MaintenanceRequestResponse> responseList = pageResult.getContent().stream()
                 .map(maintenanceMapper::toMaintenanceRequestResponse)
                 .collect(Collectors.toList());
@@ -103,8 +108,11 @@ public class MaintenanceRequestServiceImpl implements MaintenanceRequestService 
     }
 
     @Override
-    public List<MaintenanceRequestResponse> getAllRequests(String keyword) {
-        return maintenanceRequestRepository.findAll(buildKeywordSpec(keyword)).stream()
+        public List<MaintenanceRequestResponse> getAllRequests(String keyword, UUID requesterId, RequestScope scope) {
+        Specification<MaintenanceRequest> spec = Specification.where(buildKeywordSpec(keyword))
+            .and(buildRequesterIdSpec(requesterId))
+            .and(buildScopeSpec(scope));
+        return maintenanceRequestRepository.findAll(spec, Sort.by("createdAt").descending()).stream()
                 .map(maintenanceMapper::toMaintenanceRequestResponse)
                 .collect(Collectors.toList());
     }
@@ -135,7 +143,9 @@ public class MaintenanceRequestServiceImpl implements MaintenanceRequestService 
         entity.setStaff(staff);
         entity.setRequestStatus(RequestStatus.VERIFYING);
         MaintenanceRequest saved = maintenanceRequestRepository.save(entity);
-        logAction(saved.getId(), "ASSIGN_REQUEST", "Giao cho nhan vien: " + staff.getFullName());
+        String note = "Giao cho nhan vien: " + staff.getFullName()
+            + (StringUtils.hasText(request.getNote()) ? " | Ghi chu: " + request.getNote() : "");
+        logAction(saved.getId(), "ASSIGN_REQUEST", note);
         return maintenanceMapper.toMaintenanceRequestResponse(saved);
     }
 
@@ -154,12 +164,69 @@ public class MaintenanceRequestServiceImpl implements MaintenanceRequestService 
         };
     }
 
+    private Specification<MaintenanceRequest> buildRequesterIdSpec(UUID requesterId) {
+        if (requesterId == null) {
+            return null;
+        }
+        return (root, query, cb) -> cb.equal(root.get("requester").get("id"), requesterId);
+    }
+
+    private Specification<MaintenanceRequest> buildScopeSpec(RequestScope scope) {
+        if (scope == null) {
+            return null;
+        }
+        return (root, query, cb) -> cb.equal(root.get("scope"), scope);
+    }
+
     private void logAction(UUID requestId, String action, String note) {
         maintenanceLogRepository.save(MaintenanceLog.builder()
                 .requestId(requestId).action(action).note(note).build());
     }
 
+    private User getCurrentUserOrThrow() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !StringUtils.hasText(authentication.getName())) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+
+        return userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+    }
+
     private String generateCode() {
         return "REQ-" + System.currentTimeMillis();
+    }
+
+    private void applyScopeBindingOnCreate(MaintenanceRequest entity, MaintenanceRequestCreateRequest request) {
+        if (entity.getScope() == RequestScope.PUBLIC) {
+            if (request.getBuildingId() == null) {
+                throw new AppException(ErrorCode.INVALID_KEY, "PUBLIC request requires buildingId");
+            }
+
+            Building building = buildingRepository.findById(request.getBuildingId())
+                    .orElseThrow(() -> new AppException(ErrorCode.BUILDING_NOT_FOUND));
+            entity.setBuilding(building);
+            entity.setApartment(null);
+            return;
+        }
+
+        if (request.getApartmentId() == null) {
+            throw new AppException(ErrorCode.INVALID_KEY, "PRIVATE request requires apartmentId");
+        }
+
+        Apartment apartment = apartmentRepository.findById(request.getApartmentId())
+                .orElseThrow(() -> new AppException(ErrorCode.APARTMENT_NOT_FOUND));
+        entity.setApartment(apartment);
+
+        if (request.getBuildingId() != null) {
+            Building building = buildingRepository.findById(request.getBuildingId())
+                    .orElseThrow(() -> new AppException(ErrorCode.BUILDING_NOT_FOUND));
+            if (apartment.getBuilding() != null && !apartment.getBuilding().getId().equals(building.getId())) {
+                throw new AppException(ErrorCode.INVALID_KEY, "Apartment does not belong to provided building");
+            }
+            entity.setBuilding(building);
+        } else {
+            entity.setBuilding(apartment.getBuilding());
+        }
     }
 }

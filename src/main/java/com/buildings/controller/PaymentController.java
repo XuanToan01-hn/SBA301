@@ -32,9 +32,11 @@ public class PaymentController {
 
     // Tạo payment link
     @PostMapping("/{billId}")
-    public ApiResponse<PaymentResponse> createPayment(@PathVariable UUID billId) {
+        public ApiResponse<PaymentResponse> createPayment(
+                        @PathVariable UUID billId,
+                        @RequestParam(required = false) UUID maintenanceRequestId) {
         return ApiResponse.<PaymentResponse>builder()
-                .result(paymentService.createPayment(billId))
+                                .result(paymentService.createPayment(billId, maintenanceRequestId))
                 .build();
     }
 
@@ -45,9 +47,11 @@ public class PaymentController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) PaymentTransactionStatus status,
-            @RequestParam(required = false) UUID billId) {
+            @RequestParam(required = false) UUID billId,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer year) {
         return ApiResponse.<Page<PaymentTransactionDTO>>builder()
-                .result(paymentService.getTransactionHistory(page, size, status, billId))
+                .result(paymentService.getTransactionHistory(page, size, status, billId, month, year))
                 .build();
     }
 
@@ -76,9 +80,11 @@ public class PaymentController {
     // Dashboard thống kê thanh toán (admin)
     // GET /api/payments/statistics
     @GetMapping("/statistics")
-    public ApiResponse<PaymentStatisticsDTO> getStatistics() {
+    public ApiResponse<PaymentStatisticsDTO> getStatistics(
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer year) {
         return ApiResponse.<PaymentStatisticsDTO>builder()
-                .result(paymentService.getStatistics())
+                .result(paymentService.getStatistics(month, year))
                 .build();
     }
 

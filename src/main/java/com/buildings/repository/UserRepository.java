@@ -2,6 +2,7 @@ package com.buildings.repository;
 
 import com.buildings.dto.request.Auth.AuthenticationRequest;
 import com.buildings.entity.User;
+import com.buildings.entity.enums.UserStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -41,4 +42,12 @@ public interface UserRepository extends JpaRepository<User, UUID> {
             "LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "u.phone LIKE CONCAT('%', :keyword, '%')")
     List<User> searchUsers(@Param("keyword") String keyword);
+
+    @Query("SELECT u FROM User u WHERE " +
+            "(:keyword IS NULL OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+            "AND (:status IS NULL OR u.status = :status)")
+    Page<User> findAllWithFilter(@Param("keyword") String keyword,
+                                 @Param("status") UserStatus status,
+                                 Pageable pageable);
 }

@@ -3,11 +3,15 @@ package com.buildings.controller;
 import com.buildings.dto.ApiResponse;
 import com.buildings.dto.PageResponse;
 import com.buildings.dto.response.bill.BillDTO;
+import com.buildings.entity.User;
+import com.buildings.repository.UserRepository;
 import com.buildings.service.MonthlyBillService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -16,6 +20,7 @@ import java.util.UUID;
 public class MonthlyBillController {
 
     private final MonthlyBillService monthlyBillService;
+        private final UserRepository userRepository;
 
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<BillDTO>>> getAllBills(
@@ -39,6 +44,18 @@ public class MonthlyBillController {
                 .message("Fetched bill details successfully")
                 .build());
     }
+
+        @GetMapping("/maintenance/{requestId}/payable")
+        public ResponseEntity<ApiResponse<BillDTO>> getPayableBillForMaintenance(
+                        @PathVariable UUID requestId,
+                        Authentication authentication) {
+                Optional<User> user = userRepository.findByEmail(authentication.getName());
+                BillDTO bill = monthlyBillService.getPayableMaintenanceBill(requestId, user.get().getId());
+                return ResponseEntity.ok(ApiResponse.<BillDTO>builder()
+                                .result(bill)
+                                .message("Fetched payable maintenance bill successfully")
+                                .build());
+        }
 
     @GetMapping("/current-month")
     public ResponseEntity<ApiResponse<PageResponse<BillDTO>>> getBillsForCurrentMonth(

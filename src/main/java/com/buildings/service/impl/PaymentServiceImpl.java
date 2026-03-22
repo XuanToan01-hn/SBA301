@@ -9,14 +9,17 @@ import com.buildings.dto.response.payment.PaymentTransactionDetailDTO;
 import com.buildings.dto.response.payment.UploadProofResponse;
 import com.buildings.entity.ApartmentResident;
 import com.buildings.entity.BillDetail;
+import com.buildings.entity.MaintenanceRequest;
 import com.buildings.entity.MonthlyBills;
 import com.buildings.entity.PaymentTransaction;
 import com.buildings.entity.User;
+import com.buildings.entity.enums.RequestStatus;
 import com.buildings.entity.enums.PaymentTransactionStatus;
 import com.buildings.exception.AppException;
 import com.buildings.exception.ErrorCode;
 import com.buildings.mapper.PaymentTransactionMapper;
 import com.buildings.repository.MonthlyBillsRepository;
+import com.buildings.repository.MaintenanceRequestRepository;
 import com.buildings.repository.PaymentTransactionRepository;
 import com.buildings.repository.UserRepository;
 import com.buildings.service.FileStorageService;
@@ -54,6 +57,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     private final PayOS payOS;
     private final MonthlyBillsRepository monthlyBillsRepository;
+    private final MaintenanceRequestRepository maintenanceRequestRepository;
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final PaymentTransactionMapper paymentTransactionMapper;
     private final UserRepository userRepository;
@@ -67,17 +71,74 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional
-    public PaymentResponse createPayment(UUID billId) {
-        MonthlyBills bill = monthlyBillsRepository.findByIdForUpdate(billId)
+        public PaymentResponse createPayment(UUID billId, UUID maintenanceRequestId) {
+        MonthlyBills bill = monthlyBillsRepository.findByIdWithDetails(billId)
                 .orElseThrow(() -> new AppException(ErrorCode.BILL_NOT_FOUND));
 
+        String paymentReference = null;
+        long amount;
+        String itemName;
+        String description;
+
+        if (maintenanceRequestId != null) {
+            MaintenanceRequest maintenanceRequest = maintenanceRequestRepository.findById(maintenanceRequestId)
+                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Maintenance request not found"));
+
+            if (maintenanceRequest.getRequestStatus() != RequestStatus.RESIDENT_ACCEPTED) {
+            throw new AppException(ErrorCode.INVALID_KEY, "Maintenance request must be RESIDENT_ACCEPTED to pay");
+            }
+
+            String requestCode = maintenanceRequest.getCode();
+            if (requestCode == null || requestCode.isBlank()) {
+            throw new AppException(ErrorCode.INVALID_KEY, "Maintenance request code is invalid");
+            }
+
+            amount = resolveMaintenanceAmountFromBill(bill, requestCode);
+            if (amount <= 0) {
+            throw new AppException(ErrorCode.INVALID_KEY, "No payable maintenance fee found in this bill");
+            }
+
+            paymentReference = requestCode;
+            itemName = "Phi bao tri " + requestCode;
+            description = ("BT-" + requestCode);
+        } else {
+            amount = bill.getTotalAmount() != null ? bill.getTotalAmount().longValue() : 0L;
+            itemName = "Hoa don " + bill.getPeriodCode();
+            description = "HD-" + bill.getPeriodCode();
+        }
+
+        if (description.length() > 25) {
+            description = description.substring(0, 25);
+        }
+
         // Nếu đã có PENDING transaction → trả lại checkoutUrl cũ (tránh tạo mới khi reload)
-        Optional<PaymentTransaction> existingPending =
-                paymentTransactionRepository.findFirstByBillIdAndStatusOrderByCreatedAtDesc(billId, PaymentTransactionStatus.PENDING);
+        Optional<PaymentTransaction> existingPending = paymentReference == null
+            ? paymentTransactionRepository.findFirstByBillIdAndStatusAndReferenceNoIsNullOrderByCreatedAtDesc(
+                billId,
+                PaymentTransactionStatus.PENDING)
+            : paymentTransactionRepository.findFirstByBillIdAndStatusAndReferenceNoOrderByCreatedAtDesc(
+                billId,
+                PaymentTransactionStatus.PENDING,
+                paymentReference);
 
         if (existingPending.isPresent()) {
             PaymentTransaction existing = existingPending.get();
             log.info("Bill {} already has a PENDING transaction, returning existing checkout URL", billId);
+
+            String lastRejectedReason = paymentReference == null
+                ? paymentTransactionRepository
+                .findFirstByBillIdAndStatusAndReferenceNoIsNullOrderByCreatedAtDesc(
+                    billId,
+                    PaymentTransactionStatus.CANCELLED)
+                .map(PaymentTransaction::getRejectedReason)
+                .orElse(null)
+                : paymentTransactionRepository
+                .findFirstByBillIdAndStatusAndReferenceNoOrderByCreatedAtDesc(
+                    billId,
+                    PaymentTransactionStatus.CANCELLED,
+                    paymentReference)
+                .map(PaymentTransaction::getRejectedReason)
+                .orElse(null);
 
             return PaymentResponse.builder()
                     .transactionId(existing.getId())
@@ -85,23 +146,14 @@ public class PaymentServiceImpl implements PaymentService {
                     .amount(existing.getAmount().longValue())
                     .checkoutUrl(existing.getCheckoutUrl())
                     .qrCode(existing.getQrCode())
-                    .rejectedReason(existing.getRejectedReason())
+                    .rejectedReason(lastRejectedReason)
                     .build();
         }
 
-        long amount = bill.getTotalAmount() != null
-                ? bill.getTotalAmount().longValue()
-                : 0L;
-
         Long orderCode = System.currentTimeMillis();
 
-        String description = "HD-" + bill.getPeriodCode();
-        if (description.length() > 25) {
-            description = description.substring(0, 25);
-        }
-
         PaymentLinkItem item = PaymentLinkItem.builder()
-                .name("Hoa don " + bill.getPeriodCode())
+            .name(itemName)
                 .quantity(1)
                 .price(amount)
                 .build();
@@ -122,6 +174,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .amount(BigDecimal.valueOf(amount))
                 .currency("VND")
                 .status(PaymentTransactionStatus.PENDING)
+                .referenceNo(paymentReference)
                 .orderCode(orderCode)
                 .checkoutUrl(payosResponse.getCheckoutUrl())
                 .qrCode(payosResponse.getQrCode())
@@ -130,13 +183,29 @@ public class PaymentServiceImpl implements PaymentService {
         paymentTransactionRepository.save(transaction);
         log.info("Created new PayOS payment for bill {}, orderCode {}", billId, orderCode);
 
+        // Lấy rejectedReason từ lần bị từ chối gần nhất (nếu có) để frontend hiển thị
+        String lastRejectedReason = paymentReference == null
+            ? paymentTransactionRepository
+            .findFirstByBillIdAndStatusAndReferenceNoIsNullOrderByCreatedAtDesc(
+                billId,
+                PaymentTransactionStatus.CANCELLED)
+            .map(PaymentTransaction::getRejectedReason)
+            .orElse(null)
+            : paymentTransactionRepository
+            .findFirstByBillIdAndStatusAndReferenceNoOrderByCreatedAtDesc(
+                billId,
+                PaymentTransactionStatus.CANCELLED,
+                paymentReference)
+            .map(PaymentTransaction::getRejectedReason)
+            .orElse(null);
+
         return PaymentResponse.builder()
                 .transactionId(transaction.getId())
                 .billId(billId)
                 .amount(amount)
                 .checkoutUrl(payosResponse.getCheckoutUrl())
                 .qrCode(payosResponse.getQrCode())
-                .rejectedReason(null)
+                .rejectedReason(lastRejectedReason)
                 .build();
     }
 
@@ -170,11 +239,13 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional(readOnly = true)
     public Page<PaymentTransactionDTO> getTransactionHistory(int page, int size,
-                                                                     PaymentTransactionStatus status,
-                                                                     UUID billId) {
+                                                             PaymentTransactionStatus status,
+                                                             UUID billId,
+                                                             Integer month,
+                                                             Integer year) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         return paymentTransactionRepository
-                .findAllWithFilters(status, billId, pageable)
+                .findAllWithFilters(status, billId, month, year, pageable)
                 .map(paymentTransactionMapper::toDto);
     }
 
@@ -235,12 +306,10 @@ public class PaymentServiceImpl implements PaymentService {
         transaction.setPostedBy(admin);
         paymentTransactionRepository.save(transaction);
 
-        MonthlyBills bill = transaction.getBill();
-        bill.setStatus("PAID");
-        monthlyBillsRepository.save(bill);
+        updateBillStatusByPaidAmount(transaction.getBill());
 
         log.info("Manual confirm by admin {} for transaction {}, bill {} marked as PAID",
-                adminId, transactionId, bill.getId());
+            adminId, transactionId, transaction.getBill().getId());
 
         return paymentTransactionMapper.toDto(transaction);
     }
@@ -249,15 +318,15 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional(readOnly = true)
-    public PaymentStatisticsDTO getStatistics() {
-        long pending   = paymentTransactionRepository.countByStatus(PaymentTransactionStatus.PENDING);
-        long success   = paymentTransactionRepository.countByStatus(PaymentTransactionStatus.SUCCESS);
-        long cancelled = paymentTransactionRepository.countByStatus(PaymentTransactionStatus.CANCELLED);
-        long failed    = paymentTransactionRepository.countByStatus(PaymentTransactionStatus.FAILED);
-        BigDecimal totalRevenue = paymentTransactionRepository.getTotalRevenue();
+    public PaymentStatisticsDTO getStatistics(Integer month, Integer year) {
+        long pending   = paymentTransactionRepository.countByStatusAndPeriod(PaymentTransactionStatus.PENDING,   month, year);
+        long success   = paymentTransactionRepository.countByStatusAndPeriod(PaymentTransactionStatus.SUCCESS,   month, year);
+        long cancelled = paymentTransactionRepository.countByStatusAndPeriod(PaymentTransactionStatus.CANCELLED, month, year);
+        long failed    = paymentTransactionRepository.countByStatusAndPeriod(PaymentTransactionStatus.FAILED,    month, year);
+        BigDecimal totalRevenue = paymentTransactionRepository.getTotalRevenue(month, year);
 
         List<PaymentStatisticsDTO.MonthlyRevenueSummary> monthly =
-                paymentTransactionRepository.getMonthlyRevenueSummary().stream()
+                paymentTransactionRepository.getMonthlyRevenueSummary(year).stream()
                         .map(row -> PaymentStatisticsDTO.MonthlyRevenueSummary.builder()
                                 .month((String) row[0])
                                 .revenue(new BigDecimal(row[1].toString()))
@@ -343,11 +412,9 @@ public class PaymentServiceImpl implements PaymentService {
         transaction.setPostedBy(admin);
         paymentTransactionRepository.save(transaction);
 
-        MonthlyBills bill = transaction.getBill();
-        bill.setStatus("PAID");
-        monthlyBillsRepository.save(bill);
+        updateBillStatusByPaidAmount(transaction.getBill());
 
-        log.info("Transaction {} approved by admin {}, bill {} marked PAID", transactionId, adminId, bill.getId());
+        log.info("Transaction {} approved by admin {}, bill {} payment status recalculated", transactionId, adminId, transaction.getBill().getId());
 
         return buildTransactionDetail(transaction);
     }
@@ -362,7 +429,7 @@ public class PaymentServiceImpl implements PaymentService {
             throw new AppException(ErrorCode.TRANSACTION_NOT_AWAITING_PROOF);
         }
 
-        transaction.setStatus(PaymentTransactionStatus.PENDING);
+        transaction.setStatus(PaymentTransactionStatus.CANCELLED);
         transaction.setRejectedReason(reason);
         transaction.setVerifiedAt(LocalDateTime.now());
         paymentTransactionRepository.save(transaction);
@@ -402,8 +469,37 @@ public class PaymentServiceImpl implements PaymentService {
         transaction.setPaidAt(LocalDateTime.now());
         paymentTransactionRepository.save(transaction);
 
-        MonthlyBills bill = transaction.getBill();
-        bill.setStatus("PAID");
+        updateBillStatusByPaidAmount(transaction.getBill());
+    }
+
+    private long resolveMaintenanceAmountFromBill(MonthlyBills bill, String requestCode) {
+        if (bill.getDetails() == null || requestCode == null) {
+            return 0L;
+        }
+
+        String marker = requestCode.toLowerCase();
+        double amount = bill.getDetails().stream()
+                .filter(d -> d.getDescription() != null && d.getDescription().toLowerCase().contains(marker))
+                .mapToDouble(d -> d.getTotalLine() != null ? d.getTotalLine() : 0.0)
+                .sum();
+
+        return Math.round(amount);
+    }
+
+    private void updateBillStatusByPaidAmount(MonthlyBills bill) {
+        BigDecimal paidAmount = paymentTransactionRepository.getPaidAmountByBillId(bill.getId());
+        BigDecimal totalAmount = bill.getTotalAmount() != null
+                ? BigDecimal.valueOf(bill.getTotalAmount())
+                : BigDecimal.ZERO;
+
+        if (paidAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            bill.setStatus("UNPAID");
+        } else if (paidAmount.compareTo(totalAmount) >= 0) {
+            bill.setStatus("PAID");
+        } else {
+            bill.setStatus("PARTIAL");
+        }
+
         monthlyBillsRepository.save(bill);
     }
 

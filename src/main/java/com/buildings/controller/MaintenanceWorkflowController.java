@@ -38,9 +38,10 @@ public class MaintenanceWorkflowController {
     @GetMapping("/{id}/quotations")
     @Operation(summary = "Danh sách báo giá", description = "Lấy tất cả báo giá của một yêu cầu bảo trì")
     public ApiResponse<List<MaintenanceQuotationResponse>> getQuotationsByRequestId(
-            @PathVariable UUID id) {
+                        @PathVariable UUID id,
+                        @RequestParam(defaultValue = "false") boolean isResident) {
         return ApiResponse.<List<MaintenanceQuotationResponse>>builder()
-                .result(maintenanceQuotationService.getQuotationsByRequestId(id))
+                                .result(maintenanceQuotationService.getQuotationsByRequestId(id, isResident))
                 .build();
     }
 

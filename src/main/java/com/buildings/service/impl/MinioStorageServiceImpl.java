@@ -51,16 +51,24 @@ public class MinioStorageServiceImpl implements FileStorageService {
     public String uploadFile(MultipartFile file, String folder) throws Exception {
         ensureBucketExists();
 
-        String originalFilename = file.getOriginalFilename() != null
-                ? file.getOriginalFilename()
-                : "file";
-        String objectName = folder + "/" + UUID.randomUUID().toString() + "_" + originalFilename;
+        String originalFilename = StringUtils.cleanPath(
+                file.getOriginalFilename() != null ? file.getOriginalFilename() : "file");
+        if (originalFilename.contains("..")) {
+            throw new AppException(ErrorCode.FILE_UPLOAD_FAILED);
+        }
+
+        String extension = getFileExtension(originalFilename);
+        String objectName = folder + "/" + UUID.randomUUID() + extension;
+
+        String contentType = StringUtils.hasText(file.getContentType())
+                ? file.getContentType()
+                : "application/octet-stream";
 
         minioClient.putObject(PutObjectArgs.builder()
                 .bucket(minioConfig.getBucket())
                 .object(objectName)
                 .stream(file.getInputStream(), file.getSize(), -1)
-                .contentType(file.getContentType())
+                .contentType(contentType)
                 .build());
 
         log.info("Uploaded file to MinIO: {}", objectName);
@@ -74,7 +82,8 @@ public class MinioStorageServiceImpl implements FileStorageService {
 
         try {
             // Validate file
-            String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
+            String originalFilename = StringUtils.cleanPath(
+                    file.getOriginalFilename() != null ? file.getOriginalFilename() : "file");
             if (originalFilename.contains("..")) {
                 throw new AppException(ErrorCode.FILE_UPLOAD_FAILED);
             }
@@ -121,22 +130,43 @@ public class MinioStorageServiceImpl implements FileStorageService {
 
     @Override
     public String getFileUrl(String objectName) {
-        return minioConfig.getEndpoint() + "/" + minioConfig.getBucket() + "/" + objectName;
+        String endpoint = StringUtils.hasText(minioConfig.getPublicEndpoint())
+                ? minioConfig.getPublicEndpoint()
+                : minioConfig.getEndpoint();
+        endpoint = endpoint.replaceAll("/+$", "");
+        return endpoint + "/" + minioConfig.getBucket() + "/" + objectName;
     }
 
     @Override
-    public boolean fileExists(String fileUrl) {
-        if (fileUrl == null || fileUrl.isEmpty()) {
+    public boolean fileExists(String objectNameOrUrl) {
+        if (objectNameOrUrl == null || objectNameOrUrl.isEmpty()) {
             return false;
         }
 
-        String relativePath = fileUrl.replace(baseUrl, "");
-        if (relativePath.startsWith("/")) {
-            relativePath = relativePath.substring(1);
+        // Accept either internal endpoint or public endpoint URL format.
+        String internalEndpoint = minioConfig.getEndpoint().replaceAll("/+$", "");
+        String internalPrefix = internalEndpoint + "/" + minioConfig.getBucket() + "/";
+        String objectName = objectNameOrUrl;
+
+        if (objectNameOrUrl.startsWith(internalPrefix)) {
+            objectName = objectNameOrUrl.substring(internalPrefix.length());
+        } else if (StringUtils.hasText(minioConfig.getPublicEndpoint())) {
+            String publicEndpoint = minioConfig.getPublicEndpoint().replaceAll("/+$", "");
+            String publicPrefix = publicEndpoint + "/" + minioConfig.getBucket() + "/";
+            if (objectNameOrUrl.startsWith(publicPrefix)) {
+                objectName = objectNameOrUrl.substring(publicPrefix.length());
+            }
         }
 
-        Path filePath = uploadPath.resolve(relativePath);
-        return Files.exists(filePath);
+        try {
+            minioClient.statObject(StatObjectArgs.builder()
+                    .bucket(minioConfig.getBucket())
+                    .object(objectName)
+                    .build());
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private void ensureBucketExists() throws Exception {

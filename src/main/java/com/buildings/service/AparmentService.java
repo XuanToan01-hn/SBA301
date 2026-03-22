@@ -4,6 +4,7 @@ import com.buildings.dto.request.apartment_resident.ApartmentResidentRequest;
 import com.buildings.dto.response.apartment.ApartmentResponse;
 import com.buildings.dto.response.apartment_resident.ApartmentResidentResponse;
 import com.buildings.entity.enums.ApartmentStatus;
+import com.buildings.entity.enums.ResidentType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -14,27 +15,12 @@ public interface AparmentService {
 
     ApartmentResidentResponse assignResident(ApartmentResidentRequest request);
     ApartmentResponse getById(UUID apartmentId);
-
+    Page<ApartmentResidentResponse> getResidencyHistory(UUID apartmentId, ResidentType type, Pageable pageable);
     List<ApartmentResponse> getAllApartments();
-
     List<ApartmentResponse> getByBuildingId(UUID buildingId);
-
     Page<ApartmentResponse> getByBuildingIdPaged(UUID buildingId, Pageable pageable);
-
-    ApartmentResponse getByBuildingAndCode(UUID buildingId, String code);
-
-    boolean checkExists(UUID buildingId, String code);
-
-    List<ApartmentResponse> getByBuildingAndFloor(UUID buildingId, Integer floorNumber);
-
-    Page<ApartmentResponse> getByBuildingAndStatus(UUID buildingId, ApartmentStatus status, Pageable pageable);
-
-    Page<ApartmentResponse> getByBuildingAndBedrooms(UUID buildingId, Integer bedroomCount, Pageable pageable);
-
     Long countTotalInBuilding(UUID buildingId);
-
     Long countByStatusInBuilding(UUID buildingId, ApartmentStatus status);
-
     Page<ApartmentResponse> searchWithFilters(
             UUID buildingId,
             String code,
@@ -44,10 +30,6 @@ public interface AparmentService {
             Pageable pageable
     );
     Page<ApartmentResponse> getApartmentsWithOwner(UUID buildingId, Pageable pageable);
-
-    Page<ApartmentResponse> getApartmentsWithoutOwner(UUID buildingId, Pageable pageable);
-
     List<ApartmentResponse> getApartmentsByResidentEmail(String email);
-
-    void deleteByBuilding(UUID buildingId);
+    void moveOut(UUID residentId);
 }

@@ -15,12 +15,12 @@ import java.util.UUID;
 
 public interface PaymentService {
 
-    PaymentResponse createPayment(UUID billId);
+    PaymentResponse createPayment(UUID billId, UUID maintenanceRequestId);
 
     void handleWebhook(PaymentWebhookDTO webhookDTO);
 
-    // Lịch sử giao dịch (phân trang, filter theo status và billId)
-    Page<PaymentTransactionDTO> getTransactionHistory(int page, int size, PaymentTransactionStatus status, UUID billId);
+    // Lịch sử giao dịch (phân trang, filter theo status, billId, month, year)
+    Page<PaymentTransactionDTO> getTransactionHistory(int page, int size, PaymentTransactionStatus status, UUID billId, Integer month, Integer year);
 
     // Đồng bộ trạng thái từ PayOS (khi webhook bị miss)
     PaymentTransactionDTO syncFromPayOS(Long orderCode);
@@ -28,8 +28,8 @@ public interface PaymentService {
     // Admin xác nhận thanh toán thủ công
     PaymentTransactionDTO manualConfirm(UUID transactionId, UUID adminId);
 
-    // Thống kê dashboard
-    PaymentStatisticsDTO getStatistics();
+    // Thống kê dashboard (filter theo tháng/năm, null = toàn bộ)
+    PaymentStatisticsDTO getStatistics(Integer month, Integer year);
 
     // Resident upload bằng chứng thanh toán
     UploadProofResponse uploadProof(UUID transactionId, UUID userId, MultipartFile file);

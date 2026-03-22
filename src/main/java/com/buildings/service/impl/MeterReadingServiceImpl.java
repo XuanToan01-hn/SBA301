@@ -16,6 +16,7 @@ import com.buildings.repository.ApartmentRepository;
 import com.buildings.repository.MeterReadingRepository;
 import com.buildings.repository.ServiceRepository;
 import com.buildings.repository.UserRepository;
+import com.buildings.service.FileStorageService;
 import com.buildings.service.MeterReadingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,12 +24,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -42,13 +45,19 @@ public class MeterReadingServiceImpl implements MeterReadingService {
     private final ApartmentRepository apartmentRepository;
     private final UserRepository userRepository;
     private final MeterReadingMapper meterReadingMapper;
+    private final FileStorageService fileStorageService;
 
     private static final DateTimeFormatter PERIOD_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
+    private static final String METER_PHOTOS_DIR = "meter-photos";
     // Cảnh báo nếu tiêu thụ tăng hơn 300% so với tháng trước
     private static final double HIGH_USAGE_THRESHOLD = 3.0;
 
+    private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of(
+            "image/jpeg", "image/jpg", "image/png");
+    private static final long MAX_PHOTO_SIZE = 5 * 1024 * 1024; // 5MB
+
     @Override
-    public MeterReadingResponse create(MeterReadingCreateRequest request, String photoUrl, UUID takenById) {
+    public MeterReadingResponse create(MeterReadingCreateRequest request, MultipartFile photo, UUID takenById) {
         // Validate apartment
         Apartment apartment = apartmentRepository.findById(request.getApartmentId())
                 .orElseThrow(() -> new AppException(ErrorCode.APARTMENT_NOT_FOUND));
@@ -77,6 +86,26 @@ public class MeterReadingServiceImpl implements MeterReadingService {
 
         // Calculate consumption
         BigDecimal consumption = calculateConsumption(oldIndex, request.getNewIndex(), request.getIsMeterReset());
+
+        // Handle photo upload to MinIO
+        String photoUrl = null;
+        if (photo != null && !photo.isEmpty()) {
+            // Validate file
+            if (!ALLOWED_IMAGE_TYPES.contains(photo.getContentType())) {
+                throw new AppException(ErrorCode.FILE_TYPE_NOT_ALLOWED);
+            }
+            if (photo.getSize() > MAX_PHOTO_SIZE) {
+                throw new AppException(ErrorCode.FILE_SIZE_EXCEEDED);
+            }
+
+            try {
+                String objectName = fileStorageService.uploadFile(photo, METER_PHOTOS_DIR);
+                photoUrl = fileStorageService.getFileUrl(objectName);
+            } catch (Exception e) {
+                log.error("Failed to upload meter photo to MinIO: {}", e.getMessage());
+                throw new AppException(ErrorCode.FILE_UPLOAD_FAILED);
+            }
+        }
 
         // Create entity
         MeterReading meterReading = meterReadingMapper.toEntity(request);
@@ -115,7 +144,7 @@ public class MeterReadingServiceImpl implements MeterReadingService {
     }
 
     @Override
-    public MeterReadingResponse update(UUID id, MeterReadingUpdateRequest request, String newPhotoUrl) {
+    public MeterReadingResponse update(UUID id, MeterReadingUpdateRequest request, MultipartFile newPhoto) {
         MeterReading meterReading = meterReadingRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.METER_READING_NOT_FOUND));
 
@@ -127,9 +156,25 @@ public class MeterReadingServiceImpl implements MeterReadingService {
         // Update fields
         meterReadingMapper.updateEntity(meterReading, request);
 
-        // Update photo if provided
-        if (newPhotoUrl != null) {
-            meterReading.setPhotoUrl(newPhotoUrl);
+        // Update photo if provided (Upload to MinIO)
+        if (newPhoto != null && !newPhoto.isEmpty()) {
+            // Validate file
+            if (!ALLOWED_IMAGE_TYPES.contains(newPhoto.getContentType())) {
+                throw new AppException(ErrorCode.FILE_TYPE_NOT_ALLOWED);
+            }
+            if (newPhoto.getSize() > MAX_PHOTO_SIZE) {
+                throw new AppException(ErrorCode.FILE_SIZE_EXCEEDED);
+            }
+
+            try {
+                // Optionally delete old file from MinIO if needed, but for now just upload new one
+                String objectName = fileStorageService.uploadFile(newPhoto, METER_PHOTOS_DIR);
+                String photoUrl = fileStorageService.getFileUrl(objectName);
+                meterReading.setPhotoUrl(photoUrl);
+            } catch (Exception e) {
+                log.error("Failed to upload new meter photo to MinIO: {}", e.getMessage());
+                throw new AppException(ErrorCode.FILE_UPLOAD_FAILED);
+            }
         }
 
         // Recalculate consumption if indexes changed

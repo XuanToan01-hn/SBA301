@@ -24,10 +24,10 @@ public class SecurityConfig {
 
     private final CustomJwtDecoder customJwtDecoder;
 
-    private final String[] PUBLIC_ENDPOINTS = {
-            "/api/auth/signin", "/api/auth/signup", "/auth/token", "/auth/logout", "/auth/refresh",
-            "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/api/payments/payos-webhook"
-    };
+        private final String[] PUBLIC_ENDPOINTS = {
+                        "/api/auth/signin", "/api/auth/signup", "/auth/token", "/auth/logout", "/auth/refresh",
+                        "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/uploads/**", "/api/payments/payos-webhook"
+        };
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
