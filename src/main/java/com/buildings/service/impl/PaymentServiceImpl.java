@@ -469,6 +469,17 @@ public class PaymentServiceImpl implements PaymentService {
         transaction.setPaidAt(LocalDateTime.now());
         paymentTransactionRepository.save(transaction);
 
+        // Cancel tat ca PENDING transactions con lai cua cung bill (tranh orphan PENDING)
+        List<PaymentTransaction> otherPending = paymentTransactionRepository
+                .findAllByBillIdAndStatus(transaction.getBill().getId(), PaymentTransactionStatus.PENDING);
+        otherPending.stream()
+                .filter(t -> !t.getId().equals(transaction.getId()))
+                .forEach(t -> {
+                    t.setStatus(PaymentTransactionStatus.CANCELLED);
+                    paymentTransactionRepository.save(t);
+                    log.info("Cancelled orphan PENDING transaction {} for bill {}", t.getId(), transaction.getBill().getId());
+                });
+
         updateBillStatusByPaidAmount(transaction.getBill());
     }
 
