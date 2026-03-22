@@ -44,7 +44,7 @@ public class MonthlyBillServiceImpl implements MonthlyBillService {
         LocalDateTime periodEnd = billingPeriod.atEndOfMonth().atTime(23, 59, 59);
         String periodCode = billingPeriod.toString(); // YYYY-MM
 
-        List<Apartment> activeApartments = apartmentRepository.findByStatus(ApartmentStatus.AVAILABLE);
+        List<Apartment> activeApartments = apartmentRepository.findByStatus(ApartmentStatus.OCCUPIED);
         
         for (Apartment apartment : activeApartments) {
             try {

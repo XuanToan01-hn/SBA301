@@ -563,7 +563,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .amount(tx.getAmount())
                 .currency(tx.getCurrency())
                 .status(tx.getStatus().name())
-                .proofUrl(tx.getProofUrl())
+            .proofUrl(tx.getProofUrl() != null ? fileStorageService.getFileUrl(tx.getProofUrl()) : null)
                 .createdAt(tx.getCreatedAt())
                 .paidAt(tx.getPaidAt())
                 .verifiedAt(tx.getVerifiedAt())

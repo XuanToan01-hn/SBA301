@@ -20,7 +20,7 @@ public class BillingScheduler {
      * Chạy định kỳ vào lúc 00:00:00 ngày 10 hàng tháng
      * cron = "0 0 0 10 * ?"
      */
-    @Scheduled(cron = "0 0 0 10 * ?")
+    @Scheduled(cron = "*/10 * * * * ?")
     public void runMonthlyBillingJob() {
         log.info("triggering runMonthlyBillingJob...");
         

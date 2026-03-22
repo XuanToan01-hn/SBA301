@@ -129,9 +129,10 @@ public class MinioStorageServiceImpl implements FileStorageService {
     }
 
     @Override
-    public String getFileUrl(String objectName) {
-        String endpoint = minioConfig.getEndpoint().replaceAll("/+$", "");
-        return endpoint + "/" + minioConfig.getBucket() + "/" + objectName;
+    public String getFileUrl(String objectNameOrUrl) {
+        String objectName = extractObjectName(objectNameOrUrl);
+        String publicBase = getPublicEndpointBase();
+        return publicBase + "/" + minioConfig.getBucket() + "/" + objectName;
     }
 
     @Override
@@ -140,12 +141,7 @@ public class MinioStorageServiceImpl implements FileStorageService {
             return false;
         }
 
-        // Extract objectName if a full URL is provided
-        String endpoint = minioConfig.getEndpoint().replaceAll("/+$", "");
-        String prefix = endpoint + "/" + minioConfig.getBucket() + "/";
-        String objectName = objectNameOrUrl.startsWith(prefix)
-                ? objectNameOrUrl.substring(prefix.length())
-                : objectNameOrUrl;
+        String objectName = extractObjectName(objectNameOrUrl);
 
         try {
             minioClient.statObject(StatObjectArgs.builder()
@@ -167,6 +163,43 @@ public class MinioStorageServiceImpl implements FileStorageService {
             log.info("Created MinIO bucket: {}", minioConfig.getBucket());
         }
     }
+
+    private String getPublicEndpointBase() {
+        String configuredPublicEndpoint = minioConfig.getPublicEndpoint();
+        String endpoint = StringUtils.hasText(configuredPublicEndpoint)
+                ? configuredPublicEndpoint
+                : minioConfig.getEndpoint();
+        return endpoint.replaceAll("/+$", "");
+    }
+
+    private String getInternalEndpointBase() {
+        return minioConfig.getEndpoint().replaceAll("/+$", "");
+    }
+
+    private String extractObjectName(String objectNameOrUrl) {
+        String value = StringUtils.hasText(objectNameOrUrl) ? objectNameOrUrl.trim() : "";
+        if (value.isEmpty()) {
+            return value;
+        }
+
+        String bucketPrefixFromInternal = getInternalEndpointBase() + "/" + minioConfig.getBucket() + "/";
+        if (value.startsWith(bucketPrefixFromInternal)) {
+            return value.substring(bucketPrefixFromInternal.length());
+        }
+
+        String bucketPrefixFromPublic = getPublicEndpointBase() + "/" + minioConfig.getBucket() + "/";
+        if (value.startsWith(bucketPrefixFromPublic)) {
+            return value.substring(bucketPrefixFromPublic.length());
+        }
+
+        String bucketPathPrefix = "/" + minioConfig.getBucket() + "/";
+        if (value.startsWith(bucketPathPrefix)) {
+            return value.substring(bucketPathPrefix.length());
+        }
+
+        return value;
+    }
+
     private String getFileExtension(String filename) {
         if (filename == null || !filename.contains(".")) {
             return "";
