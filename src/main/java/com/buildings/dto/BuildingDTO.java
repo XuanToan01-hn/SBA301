@@ -17,59 +17,59 @@ public class BuildingDTO {
 
     // ================= BASIC INFO =================
 
-    @NotBlank(message = "Building name is required")
-    @Size(max = 50, message = "Building name must not exceed 50 characters")
+    @NotBlank(message = "Tên tòa nhà là bắt buộc")
+    @Size(max = 50, message = "Tên tòa nhà không được vượt quá 50 ký tự")
     private String name;
 
-    @NotBlank(message = "Building code is required")
-    @Size(max = 20, message = "Building code must not exceed 20 characters")
+    @NotBlank(message = "Mã tòa nhà là bắt buộc")
+    @Size(max = 20, message = "Mã tòa nhà không được vượt quá 20 ký tự")
     private String code;
 
-    @NotBlank(message = "Address is required")
-    @Size(max = 50, message = "Address must not exceed 50 characters")
+    @NotBlank(message = "Địa chỉ là bắt buộc")
+    @Size(max = 50, message = "Địa chỉ không được vượt quá 50 ký tự")
     private String address;
 
     // ================= FLOOR =================
 
-    @NotNull(message = "Number of floors is required")
-    @Min(value = 1, message = "Number of floors must be at least 1")
-    @Max(value = 99, message = "Number of floors must not exceed 99")
+    @NotNull(message = "Số tầng là bắt buộc")
+    @Min(value = 1, message = "Số tầng phải lớn hơn hoặc bằng 1")
+    @Max(value = 99, message = "Số tầng không được vượt quá 99")
     private Integer numFloors;
 
     // ================= 1BR =================
 
-    @NotNull(message = "Number of 1BR apartments is required")
-    @Min(value = 0, message = "1BR apartments cannot be negative")
-    @Max(value = 20, message = "1BR apartments per floor must not exceed 20")
+    @NotNull(message = "Số căn hộ 1 phòng ngủ là bắt buộc")
+    @Min(value = 0, message = "Số căn hộ 1 phòng ngủ không được âm")
+    @Max(value = 20, message = "Số căn hộ 1 phòng ngủ mỗi tầng không được vượt quá 20")
     private Integer apartmentsPerFloor1br;
 
-    @NotNull(message = "Area of 1BR apartments is required")
-    @DecimalMin(value = "20.0", message = "1BR area must be at least 20 sqm")
-    @DecimalMax(value = "80.0", message = "1BR area must not exceed 80 sqm")
+    @NotNull(message = "Diện tích căn hộ 1 phòng ngủ là bắt buộc")
+    @DecimalMin(value = "20.0", message = "Diện tích căn hộ 1 phòng ngủ phải lớn hơn hoặc bằng 20 m2")
+    @DecimalMax(value = "80.0", message = "Diện tích căn hộ 1 phòng ngủ không được vượt quá 80 m2")
     private Double area1brSqm;
 
     // ================= 2BR =================
 
-    @NotNull(message = "Number of 2BR apartments is required")
-    @Min(value = 0, message = "2BR apartments cannot be negative")
-    @Max(value = 20, message = "2BR apartments per floor must not exceed 20")
+    @NotNull(message = "Số căn hộ 2 phòng ngủ là bắt buộc")
+    @Min(value = 0, message = "Số căn hộ 2 phòng ngủ không được âm")
+    @Max(value = 20, message = "Số căn hộ 2 phòng ngủ mỗi tầng không được vượt quá 20")
     private Integer apartmentsPerFloor2br;
 
-    @NotNull(message = "Area of 2BR apartments is required")
-    @DecimalMin(value = "40.0", message = "2BR area must be at least 40 sqm")
-    @DecimalMax(value = "150.0", message = "2BR area must not exceed 150 sqm")
+    @NotNull(message = "Diện tích căn hộ 2 phòng ngủ là bắt buộc")
+    @DecimalMin(value = "40.0", message = "Diện tích căn hộ 2 phòng ngủ phải lớn hơn hoặc bằng 40 m2")
+    @DecimalMax(value = "150.0", message = "Diện tích căn hộ 2 phòng ngủ không được vượt quá 150 m2")
     private Double area2brSqm;
 
     // ================= 3BR =================
 
-    @NotNull(message = "Number of 3BR apartments is required")
-    @Min(value = 0, message = "3BR apartments cannot be negative")
-    @Max(value = 20, message = "3BR apartments per floor must not exceed 20")
+    @NotNull(message = "Số căn hộ 3 phòng ngủ là bắt buộc")
+    @Min(value = 0, message = "Số căn hộ 3 phòng ngủ không được âm")
+    @Max(value = 20, message = "Số căn hộ 3 phòng ngủ mỗi tầng không được vượt quá 20")
     private Integer apartmentsPerFloor3br;
 
-    @NotNull(message = "Area of 3BR apartments is required")
-    @DecimalMin(value = "60.0", message = "3BR area must be at least 60 sqm")
-    @DecimalMax(value = "300.0", message = "3BR area must not exceed 300 sqm")
+    @NotNull(message = "Diện tích căn hộ 3 phòng ngủ là bắt buộc")
+    @DecimalMin(value = "60.0", message = "Diện tích căn hộ 3 phòng ngủ phải lớn hơn hoặc bằng 60 m2")
+    @DecimalMax(value = "300.0", message = "Diện tích căn hộ 3 phòng ngủ không được vượt quá 300 m2")
     private Double area3brSqm;
 
     // ================= SYSTEM =================
@@ -88,7 +88,7 @@ public class BuildingDTO {
 
     // ================= BUSINESS VALIDATION =================
 
-    @AssertTrue(message = "At least one apartment type must be greater than 0")
+    @AssertTrue(message = "Phải có ít nhất một loại căn hộ có số lượng lớn hơn 0")
     public boolean isValidApartmentLayout() {
         if (apartmentsPerFloor1br == null ||
                 apartmentsPerFloor2br == null ||
@@ -101,7 +101,7 @@ public class BuildingDTO {
                 + apartmentsPerFloor3br) > 0;
     }
 
-    @AssertTrue(message = "Area must be provided for apartment types with count > 0")
+    @AssertTrue(message = "Phải nhập diện tích cho các loại căn hộ có số lượng > 0")
     public boolean isValidAreaConfiguration() {
 
         if (apartmentsPerFloor1br != null && apartmentsPerFloor1br > 0) {
@@ -119,7 +119,7 @@ public class BuildingDTO {
         return true;
     }
 
-    @AssertTrue(message = "Total apartments per floor must not exceed 30")
+    @AssertTrue(message = "Tổng số căn hộ mỗi tầng không được vượt quá 30")
     public boolean isValidTotalApartments() {
         if (apartmentsPerFloor1br == null ||
                 apartmentsPerFloor2br == null ||
